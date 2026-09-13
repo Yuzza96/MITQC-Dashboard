@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes } from 'lucide-react';
+import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes, Clock } from 'lucide-react';
 import { findRouteCard } from '../api.js';
 
 // WO# and Drawing Number are shown in the hero above instead of a group.
@@ -153,6 +153,25 @@ export default function RouteCard({ showToast }) {
           )}
         </div>
       )}
+
+      {/* TODO: backed by real data once Register Route Card writes somewhere */}
+      <div className="glass-card">
+        <h2 className="card-title"><Clock /> Pending Inspection</h2>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>WO#</th><th>Rev</th><th>Part Description</th><th>Drawing Number</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colSpan={4}>
+                <div className="empty-state"><Inbox />Tiada route card belum inspection.</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
