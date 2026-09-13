@@ -77,7 +77,7 @@ Charts use `react-chartjs-2` (`<Doughnut>`/`<Bar>`, backed by `chart.js`) — th
 
 ### Language/copy conventions
 
-UI copy mixes Malay and English (e.g. "Tambah rekod baharu", "Simpan Rekod", toast messages in Malay) — preserve this existing bilingual style rather than translating wholesale in either direction.
+UI copy is fully English (converted from an earlier bilingual Malay/English mix at the user's explicit request, since the mixing read as inconsistent). Keep new copy in English — don't reintroduce Malay strings.
 
 ### Deployment
 

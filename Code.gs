@@ -100,7 +100,7 @@ function getImportIndex() {
   const lastCol = sheet.getLastColumn();
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const woCol = headers.indexOf(IMPORT_WO_COLUMN) + 1; // 1-based
-  if (woCol === 0) throw new Error('Column "' + IMPORT_WO_COLUMN + '" tidak dijumpai');
+  if (woCol === 0) throw new Error('Column "' + IMPORT_WO_COLUMN + '" not found');
   const woValues = sheet.getRange(2, woCol, lastRow - 1, 1).getValues().map(r => (r[0] || '').toString());
 
   const index = { headers, lastCol, woValues };
@@ -110,7 +110,7 @@ function getImportIndex() {
 
 function findRouteCard(wo, index) {
   wo = (wo || '').toString().trim();
-  if (!wo) return { status: 'error', message: 'Route Card No. diperlukan' };
+  if (!wo) return { status: 'error', message: 'Route Card No. is required' };
 
   const { headers, lastCol, woValues } = getImportIndex();
   const revCol = headers.indexOf('REV') + 1;

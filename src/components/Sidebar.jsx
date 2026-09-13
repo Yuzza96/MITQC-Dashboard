@@ -1,7 +1,7 @@
 import { ShieldCheck, ClipboardList } from 'lucide-react';
 
-// Sementara: menu lain (Home, Reports, ...) belum ditambah semula.
-// Tambah balik entri dalam senarai ni bila panel tu dah siap.
+// Temporary: other menus (Home, Reports, ...) aren't wired back in yet.
+// Add entries back to this list once their panel is ready.
 const NAV_ITEMS = [
   { id: 'routecard', label: 'Route Card', icon: ClipboardList, badgeClass: 'badge-green' },
 ];

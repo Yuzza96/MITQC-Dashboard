@@ -22,10 +22,10 @@ export default function InspectionForm({ showToast }) {
     setSaving(true);
     try {
       await saveRecord(record);
-      showToast('Rekod berjaya disimpan!');
+      showToast('Record saved successfully!');
       reset();
     } catch (err) {
-      showToast('Gagal simpan rekod.', 'error');
+      showToast('Failed to save record.', 'error');
       console.error(err);
     } finally {
       setSaving(false);
@@ -36,7 +36,7 @@ export default function InspectionForm({ showToast }) {
     <div className="panel">
       <div className="page-header">
         <h1>New Inspection</h1>
-        <p>Tambah rekod pemeriksaan baharu</p>
+        <p>Add a new inspection record</p>
       </div>
 
       <form autoComplete="off" onSubmit={handleSubmit}>
@@ -49,7 +49,7 @@ export default function InspectionForm({ showToast }) {
             </div>
             <div className="form-group">
               <label>Route Card No. <span className="req">*</span></label>
-              <input type="text" placeholder="cth: RC-2026-001" required value={record.routecard} onChange={set('routecard')} />
+              <input type="text" placeholder="e.g. RC-2026-001" required value={record.routecard} onChange={set('routecard')} />
             </div>
             <div className="form-group">
               <label>PO#</label>
@@ -61,7 +61,7 @@ export default function InspectionForm({ showToast }) {
             </div>
             <div className="form-group full">
               <label>Part Description <span className="req">*</span></label>
-              <input type="text" placeholder="Nama/penerangan part" required value={record.part} onChange={set('part')} />
+              <input type="text" placeholder="Part name/description" required value={record.part} onChange={set('part')} />
             </div>
             <div className="form-group">
               <label>Qty PO</label>
@@ -69,15 +69,15 @@ export default function InspectionForm({ showToast }) {
             </div>
             <div className="form-group">
               <label>Material</label>
-              <input type="text" placeholder="cth: AISI 4140" value={record.material} onChange={set('material')} />
+              <input type="text" placeholder="e.g. AISI 4140" value={record.material} onChange={set('material')} />
             </div>
             <div className="form-group">
               <label>Next Process</label>
-              <input type="text" placeholder="Proses seterusnya" value={record.nextprocess} onChange={set('nextprocess')} />
+              <input type="text" placeholder="Next process" value={record.nextprocess} onChange={set('nextprocess')} />
             </div>
             <div className="form-group">
               <label>Inspected By</label>
-              <input type="text" placeholder="Nama inspektor" value={record.inspector} onChange={set('inspector')} />
+              <input type="text" placeholder="Inspector name" value={record.inspector} onChange={set('inspector')} />
             </div>
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function InspectionForm({ showToast }) {
             <div className="form-group">
               <label>Inspection Status <span className="req">*</span></label>
               <select required value={record.status} onChange={set('status')}>
-                <option value="">— Pilih —</option>
+                <option value="">— Select —</option>
                 <option>Pass</option>
                 <option>Fail</option>
                 <option>Conditional Pass</option>
@@ -98,7 +98,7 @@ export default function InspectionForm({ showToast }) {
             <div className="form-group">
               <label>Part Status</label>
               <select value={record.partstatus} onChange={set('partstatus')}>
-                <option value="">— Pilih —</option>
+                <option value="">— Select —</option>
                 <option>Accept</option>
                 <option>Reject</option>
                 <option>On Hold</option>
@@ -118,12 +118,12 @@ export default function InspectionForm({ showToast }) {
             </div>
             <div className="form-group">
               <label>NCR No.</label>
-              <input type="text" placeholder="NCR No. (jika ada)" value={record.ncr} onChange={set('ncr')} />
+              <input type="text" placeholder="NCR No. (if any)" value={record.ncr} onChange={set('ncr')} />
             </div>
             <div className="form-group">
               <label>NC Status</label>
               <select value={record.ncrstatus} onChange={set('ncrstatus')}>
-                <option value="">— Pilih —</option>
+                <option value="">— Select —</option>
                 <option>N/A</option>
                 <option>Open</option>
                 <option>In Review</option>
@@ -132,14 +132,14 @@ export default function InspectionForm({ showToast }) {
             </div>
             <div className="form-group full">
               <label>Remark</label>
-              <textarea placeholder="Nota tambahan..." value={record.remark} onChange={set('remark')} />
+              <textarea placeholder="Additional notes..." value={record.remark} onChange={set('remark')} />
             </div>
           </div>
 
           <div className="form-actions">
             <button type="button" className="btn-ghost" onClick={reset}>Reset</button>
             <button type="submit" className="btn-primary" disabled={saving}>
-              <Save /> {saving ? 'Menyimpan...' : 'Simpan Rekod'}
+              <Save /> {saving ? 'Saving...' : 'Save Record'}
             </button>
           </div>
         </div>

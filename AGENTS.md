@@ -103,7 +103,7 @@ Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds with Vit
 - Google account (personal): peyo23dude@gmail.com — owns the "MITQC" spreadsheet
 
 ## Coding Conventions
-- Guna Bahasa Melayu untuk UI labels dan toast messages; screens explicitly modeled on an English reference design (e.g. "Register Route Card", "Find", "Reset") can stay English to match
+- All UI labels and toast messages are English now (converted from a bilingual Malay/English mix at the user's request) - don't reintroduce Malay strings
 - Semua comments dalam English
 - React function components + hooks only — no class components, no state management library (app is small enough for local `useState`/`useMemo`)
 - Jangan guna localStorage untuk data production — guna Google Sheets sahaja

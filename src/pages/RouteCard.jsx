@@ -26,10 +26,10 @@ export default function RouteCard({ showToast }) {
       } else {
         setRevisions(null);
         setResult(res);
-        if (!res.found) showToast('Route Card tidak dijumpai.', 'error');
+        if (!res.found) showToast('Route Card not found.', 'error');
       }
     } catch (err) {
-      showToast('Gagal cari route card.', 'error');
+      showToast('Failed to search route card.', 'error');
       console.error(err);
       setResult(null);
       setRevisions(null);
@@ -60,7 +60,7 @@ export default function RouteCard({ showToast }) {
     <div className="panel">
       <div className="page-header">
         <h1>Route Card</h1>
-        <p>Cari maklumat route card sedia ada</p>
+        <p>Search for existing route card information</p>
       </div>
 
       <form className="glass-card" onSubmit={handleFind}>
@@ -76,7 +76,7 @@ export default function RouteCard({ showToast }) {
               style={{ flex: 1 }}
             />
             <button type="submit" className="btn-primary" disabled={searching} style={{ flexShrink: 0 }}>
-              {searching ? 'Mencari...' : 'Find'}
+              {searching ? 'Searching...' : 'Find'}
             </button>
             <button type="button" className="btn-ghost" onClick={handleReset} style={{ flexShrink: 0 }}>
               Reset
@@ -89,7 +89,7 @@ export default function RouteCard({ showToast }) {
         <div className="glass-card">
           <h2 className="card-title">This route card have multiple revision</h2>
           <p style={{ marginBottom: 14, color: 'var(--text-muted)', fontSize: 13.5 }}>
-            Sila pilih revision yang anda perlukan:
+            Please select the revision you need:
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {revisions.map(({ index, label }) => (
@@ -113,7 +113,7 @@ export default function RouteCard({ showToast }) {
             <h2 className="card-title">Details</h2>
           )}
           {!result.found ? (
-            <div className="empty-state"><Inbox />Route Card tidak dijumpai.</div>
+            <div className="empty-state"><Inbox />Route Card not found.</div>
           ) : (
             <>
               <div className="detail-hero">

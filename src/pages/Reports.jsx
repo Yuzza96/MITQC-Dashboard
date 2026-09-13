@@ -24,7 +24,7 @@ export default function Reports({ showToast }) {
       .then(data => { if (!cancelled) setRecords(data); })
       .catch(err => {
         if (!cancelled) {
-          showToast('Gagal load data.', 'error');
+          showToast('Failed to load data.', 'error');
           console.error(err);
           setRecords([]);
         }
@@ -71,7 +71,7 @@ export default function Reports({ showToast }) {
   }
 
   function exportCsv() {
-    if (!filtered.length) { showToast('Tiada data untuk export.', 'error'); return; }
+    if (!filtered.length) { showToast('No data to export.', 'error'); return; }
     const csv = [
       EXPORT_KEYS.join(','),
       ...filtered.map(r => EXPORT_KEYS.map(k => `"${(r[k] || '').toString().replace(/"/g, '""')}"`).join(',')),
@@ -80,14 +80,14 @@ export default function Reports({ showToast }) {
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `MITQC_Export_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-    showToast('Export berjaya!');
+    showToast('Export successful!');
   }
 
   return (
     <div className="panel">
       <div className="page-header">
         <h1>Reports</h1>
-        <p>Analisis dan rekod pemeriksaan</p>
+        <p>Inspection analysis and records</p>
       </div>
 
       <div className="charts-row">
@@ -106,7 +106,7 @@ export default function Reports({ showToast }) {
           <Bar
             data={{
               labels: topMaterials.map(m => m[0]),
-              datasets: [{ label: 'Rekod', data: topMaterials.map(m => m[1]), backgroundColor: '#4f8ef7', borderRadius: 6 }],
+              datasets: [{ label: 'Records', data: topMaterials.map(m => m[1]), backgroundColor: '#4f8ef7', borderRadius: 6 }],
             }}
             options={{
               responsive: true, maintainAspectRatio: false,
@@ -126,23 +126,23 @@ export default function Reports({ showToast }) {
           <div className="form-group">
             <label>Status</label>
             <select value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="">Semua</option>
+              <option value="">All</option>
               {statusOptions.map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label>Material</label>
             <select value={material} onChange={e => setMaterial(e.target.value)}>
-              <option value="">Semua</option>
+              <option value="">All</option>
               {materialOptions.map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Dari Tarikh</label>
+            <label>From Date</label>
             <input type="date" value={start} onChange={e => setStart(e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Hingga Tarikh</label>
+            <label>To Date</label>
             <input type="date" value={end} onChange={e => setEnd(e.target.value)} />
           </div>
           <div className="form-group" style={{ justifyContent: 'flex-end', alignSelf: 'flex-end' }}>
@@ -153,14 +153,14 @@ export default function Reports({ showToast }) {
 
       <div className="glass-card">
         <div className="table-header-row">
-          <h2 className="card-title" style={{ margin: 0 }}><FileText /> Semua Rekod</h2>
+          <h2 className="card-title" style={{ margin: 0 }}><FileText /> All Records</h2>
           <button className="btn-ghost small" onClick={exportCsv}><Download /> Export CSV</button>
         </div>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Tarikh</th><th>Route Card</th><th>PO#</th>
+                <th>Date</th><th>Route Card</th><th>PO#</th>
                 <th>Part Description</th><th>Material</th>
                 <th>Insp. Status</th><th>Qty OK</th><th>Qty NG</th>
                 <th>NCR</th><th>NC Status</th><th>Remark</th>
@@ -169,7 +169,7 @@ export default function Reports({ showToast }) {
             <tbody>
               {filtered.length === 0 && (
                 <tr><td colSpan={11}>
-                  <div className="empty-state"><Inbox />Tiada rekod dijumpai.</div>
+                  <div className="empty-state"><Inbox />No records found.</div>
                 </td></tr>
               )}
               {filtered.map((r, i) => (

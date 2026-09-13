@@ -3,10 +3,10 @@ import Sidebar from './components/Sidebar.jsx';
 import Toast from './components/Toast.jsx';
 import RouteCard from './pages/RouteCard.jsx';
 
-// Sementara: menu lain (Home/Reports/Inspection Result) dibuang buat
-// masa ni — fokus siapkan menu "Route Card" dulu. Menu lain akan
-// ditambah semula kemudian (lihat src/pages/Home.jsx, Reports.jsx,
-// InspectionForm.jsx — kekal, cuma tak digunakan sekarang).
+// Temporary: other menus (Home/Reports/Inspection Result) are dropped
+// for now - focus on getting the "Route Card" menu right first. They'll
+// be added back later (see src/pages/Home.jsx, Reports.jsx,
+// InspectionForm.jsx - kept, just unused right now).
 
 export default function App() {
   const [activePanel, setActivePanel] = useState('routecard');

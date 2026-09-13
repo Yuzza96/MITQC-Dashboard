@@ -12,7 +12,7 @@ export default function Home({ showToast }) {
       .then(data => { if (!cancelled) setRecords(data); })
       .catch(err => {
         if (!cancelled) {
-          showToast('Gagal load data.', 'error');
+          showToast('Failed to load data.', 'error');
           console.error(err);
           setRecords([]);
         }
@@ -32,7 +32,7 @@ export default function Home({ showToast }) {
     <div className="panel">
       <div className="page-header">
         <h1>Overview</h1>
-        <p>Ringkasan keseluruhan rekod QC</p>
+        <p>Overall summary of QC records</p>
       </div>
 
       <div className="stats-grid">
@@ -45,28 +45,28 @@ export default function Home({ showToast }) {
           </>
         ) : (
           <>
-            <StatCard label="Total Rekod" value={data.length} sub="Keseluruhan entri" />
-            <StatCard label="Quantity OK" value={qtyOK} sub="Unit lulus" className="stat-ok" />
-            <StatCard label="Quantity NG" value={qtyNG} sub="Unit gagal" className="stat-ng" />
-            <StatCard label="NCR Aktif" value={ncr} sub="Perlu tindakan" className="stat-ncr" />
+            <StatCard label="Total Records" value={data.length} sub="All entries" />
+            <StatCard label="Quantity OK" value={qtyOK} sub="Passed units" className="stat-ok" />
+            <StatCard label="Quantity NG" value={qtyNG} sub="Failed units" className="stat-ng" />
+            <StatCard label="Active NCR" value={ncr} sub="Needs action" className="stat-ncr" />
           </>
         )}
       </div>
 
       <div className="glass-card">
-        <h2 className="card-title"><List /> Rekod Terbaru</h2>
+        <h2 className="card-title"><List /> Recent Records</h2>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Tarikh</th><th>Route Card</th><th>Part Description</th>
+                <th>Date</th><th>Route Card</th><th>Part Description</th>
                 <th>Material</th><th>Status</th><th>Qty OK</th><th>Qty NG</th>
               </tr>
             </thead>
             <tbody>
               {!loading && recent.length === 0 && (
                 <tr><td colSpan={7}>
-                  <div className="empty-state"><Inbox />Tiada rekod lagi. Tambah rekod baru!</div>
+                  <div className="empty-state"><Inbox />No records yet. Add a new record!</div>
                 </td></tr>
               )}
               {recent.map((r, i) => (
