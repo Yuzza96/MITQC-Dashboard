@@ -4,13 +4,18 @@
 //  bound to the "Inspection Records" sheet,
 //  then redeploy the web app (New deployment
 //  or "Manage deployments" → edit → new version).
+//
+//  Plain JSON over GET — no JSONP. Apps Script
+//  web app responses already carry permissive
+//  CORS headers for simple GET requests, so a
+//  normal fetch() from the browser can read the
+//  response body directly.
 // ═══════════════════════════════════════
 
 const SHEET_NAME = 'Inspection Records';
 
 function doGet(e) {
-  const action   = (e.parameter.action || 'list');
-  const callback = e.parameter.callback;
+  const action = (e.parameter.action || 'list');
 
   let result;
   try {
@@ -19,14 +24,8 @@ function doGet(e) {
     result = { status: 'error', message: err.message };
   }
 
-  const json = JSON.stringify(result);
-  if (callback) {
-    return ContentService
-      .createTextOutput(callback + '(' + json + ')')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
   return ContentService
-    .createTextOutput(json)
+    .createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
