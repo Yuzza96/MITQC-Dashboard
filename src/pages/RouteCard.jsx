@@ -103,7 +103,15 @@ export default function RouteCard({ showToast }) {
 
       {result && (
         <div className="glass-card">
-          <h2 className="card-title">Details</h2>
+          {result.found ? (
+            <div className="table-header-row">
+              <h2 className="card-title" style={{ margin: 0 }}>Details</h2>
+              {/* TODO: wire up the actual register action */}
+              <button type="button" className="btn-primary">Register Route Card</button>
+            </div>
+          ) : (
+            <h2 className="card-title">Details</h2>
+          )}
           {!result.found ? (
             <div className="empty-state"><Inbox />Route Card tidak dijumpai.</div>
           ) : (
