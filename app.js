@@ -7,6 +7,11 @@ const DB_KEY = 'mitqc_records';
 let deleteTargetId = null;
 let charts = { status: null, material: null };
 
+// ── ICONS ────────────────────────────
+function refreshIcons() {
+  if (window.lucide) lucide.createIcons();
+}
+
 // ── STORAGE ──────────────────────────
 function getRecords() {
   try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
@@ -49,8 +54,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // ── TOAST ────────────────────────────
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  t.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+  const icon = type === 'success' ? 'check-circle' : 'x-circle';
+  t.innerHTML = `<i data-lucide="${icon}"></i><span>${msg}</span>`;
   t.className = 'toast show ' + type;
+  refreshIcons();
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.className = 'toast', 3500);
 }
@@ -99,7 +106,8 @@ function renderHome() {
   const recent = records.slice(0, 10);
 
   if (!recent.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span>📭</span>Tiada rekod lagi. Tambah rekod baru!</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i data-lucide="inbox"></i>Tiada rekod lagi. Tambah rekod baru!</div></td></tr>`;
+    refreshIcons();
     return;
   }
 
@@ -121,7 +129,8 @@ document.getElementById('qc-form').addEventListener('submit', function(e) {
   e.preventDefault();
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Menyimpan...';
+  btn.innerHTML = '<i data-lucide="loader-circle" class="spin"></i> Menyimpan...';
+  refreshIcons();
 
   const record = {
     date:        document.getElementById('f-date').value,
@@ -149,7 +158,8 @@ document.getElementById('qc-form').addEventListener('submit', function(e) {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
   btn.disabled = false;
-  btn.textContent = '💾 Simpan Rekod';
+  btn.innerHTML = '<i data-lucide="save"></i> Simpan Rekod';
+  refreshIcons();
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
@@ -198,7 +208,8 @@ function renderReportTable() {
   const tbody = document.getElementById('report-tbody');
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><span>📭</span>Tiada rekod dijumpai.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><i data-lucide="inbox"></i>Tiada rekod dijumpai.</div></td></tr>`;
+    refreshIcons();
     return;
   }
 
@@ -215,9 +226,10 @@ function renderReportTable() {
       <td>${r.ncr || '—'}</td>
       <td>${r.ncrstatus || '—'}</td>
       <td>${r.remark || '—'}</td>
-      <td><button class="icon-btn" onclick="confirmDelete('${r.id}')" title="Padam">🗑</button></td>
+      <td><button class="icon-btn" onclick="confirmDelete('${r.id}')" title="Padam"><i data-lucide="trash-2"></i></button></td>
     </tr>
   `).join('');
+  refreshIcons();
 }
 
 function renderCharts() {
@@ -322,3 +334,4 @@ document.getElementById('clear-all-btn').addEventListener('click', () => {
 // ── INIT ─────────────────────────────
 document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 renderHome();
+refreshIcons();

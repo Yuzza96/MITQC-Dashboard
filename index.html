@@ -7,12 +7,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🔬</div>
+    <div class="logo-icon"><i data-lucide="shield-check"></i></div>
     <div class="logo-text">
       <span>MITQC</span>
       <small>Quality Control</small>
@@ -21,17 +22,17 @@
   <nav>
     <p class="nav-label">MENU</p>
     <button class="nav-btn active" data-panel="home">
-      <span class="nav-icon">🏠</span><span>Home</span>
+      <span class="nav-icon-badge badge-slate"><i data-lucide="home"></i></span><span>Home</span>
     </button>
     <button class="nav-btn" data-panel="form">
-      <span class="nav-icon">📝</span><span>New Inspection</span>
+      <span class="nav-icon-badge badge-green"><i data-lucide="clipboard-list"></i></span><span>New Inspection</span>
     </button>
     <button class="nav-btn" data-panel="report">
-      <span class="nav-icon">📊</span><span>Reports</span>
+      <span class="nav-icon-badge badge-orange"><i data-lucide="bar-chart-3"></i></span><span>Reports</span>
     </button>
   </nav>
   <div class="sidebar-footer">
-    <button class="btn-danger-ghost" id="clear-all-btn">🗑 Clear All Data</button>
+    <button class="btn-danger-ghost" id="clear-all-btn"><i data-lucide="trash-2"></i><span>Clear All Data</span></button>
   </div>
 </aside>
 
@@ -45,7 +46,7 @@
     </div>
     <div class="stats-grid" id="home-stats"></div>
     <div class="glass-card">
-      <h2 class="card-title">📋 Rekod Terbaru</h2>
+      <h2 class="card-title"><i data-lucide="list"></i> Rekod Terbaru</h2>
       <div class="table-scroll">
         <table id="home-table">
           <thead><tr>
@@ -68,7 +69,7 @@
     <form id="qc-form" autocomplete="off">
       <!-- ROUTE CARD -->
       <div class="glass-card">
-        <h2 class="card-title">📋 Route Card</h2>
+        <h2 class="card-title"><i data-lucide="file-text"></i> Route Card</h2>
         <div class="form-grid">
           <div class="form-group">
             <label>Inspection Date <span class="req">*</span></label>
@@ -111,7 +112,7 @@
 
       <!-- INSPECTION RESULT -->
       <div class="glass-card">
-        <h2 class="card-title">🔍 Inspection Result</h2>
+        <h2 class="card-title"><i data-lucide="search-check"></i> Inspection Result</h2>
         <div class="form-grid">
           <div class="form-group">
             <label>Inspection Status <span class="req">*</span></label>
@@ -166,7 +167,7 @@
 
         <div class="form-actions">
           <button type="button" class="btn-ghost" id="reset-btn">Reset</button>
-          <button type="submit" class="btn-primary" id="submit-btn">💾 Simpan Rekod</button>
+          <button type="submit" class="btn-primary" id="submit-btn"><i data-lucide="save"></i> Simpan Rekod</button>
         </div>
       </div>
     </form>
@@ -193,7 +194,7 @@
 
     <!-- Filters -->
     <div class="glass-card">
-      <h2 class="card-title">🔎 Filter</h2>
+      <h2 class="card-title"><i data-lucide="filter"></i> Filter</h2>
       <div class="filter-row">
         <div class="form-group">
           <label>Status</label>
@@ -220,8 +221,8 @@
     <!-- Table -->
     <div class="glass-card">
       <div class="table-header-row">
-        <h2 class="card-title" style="margin:0">📄 Semua Rekod</h2>
-        <button class="btn-ghost small" id="export-btn">⬇ Export CSV</button>
+        <h2 class="card-title" style="margin:0"><i data-lucide="file-text"></i> Semua Rekod</h2>
+        <button class="btn-ghost small" id="export-btn"><i data-lucide="download"></i> Export CSV</button>
       </div>
       <div class="table-scroll">
         <table id="report-table">
