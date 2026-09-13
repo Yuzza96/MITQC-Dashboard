@@ -1,40 +1,13 @@
 // ═══════════════════════════════════════
 //  MITQC Dashboard — app.js
-//  Storage: localStorage
+//  Backend: Google Sheets via Apps Script
 // ═══════════════════════════════════════
 
-const DB_KEY = 'mitqc_records';
-let deleteTargetId = null;
+// ⚠️ TUKAR ini lepas deploy Apps Script
+const API_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+let allRecords = [];
 let charts = { status: null, material: null };
-
-// ── ICONS ────────────────────────────
-function refreshIcons() {
-  if (window.lucide) lucide.createIcons();
-}
-
-// ── STORAGE ──────────────────────────
-function getRecords() {
-  try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
-  catch { return []; }
-}
-
-function saveRecords(records) {
-  localStorage.setItem(DB_KEY, JSON.stringify(records));
-}
-
-function addRecord(record) {
-  const records = getRecords();
-  record.id = Date.now().toString();
-  record.createdAt = new Date().toISOString();
-  records.unshift(record);
-  saveRecords(records);
-  return record;
-}
-
-function deleteRecord(id) {
-  const records = getRecords().filter(r => r.id !== id);
-  saveRecords(records);
-}
 
 // ── NAVIGATION ───────────────────────
 function showPanel(id) {
@@ -54,12 +27,22 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // ── TOAST ────────────────────────────
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  const icon = type === 'success' ? 'check-circle' : 'x-circle';
-  t.innerHTML = `<i data-lucide="${icon}"></i><span>${msg}</span>`;
+  t.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
   t.className = 'toast show ' + type;
-  refreshIcons();
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.className = 'toast', 3500);
+}
+
+// ── LOADING STATE ────────────────────
+function setLoading(el, loading) {
+  if (loading) {
+    el.dataset.orig = el.textContent;
+    el.textContent = '⏳ Loading...';
+    el.disabled = true;
+  } else {
+    el.textContent = el.dataset.orig || el.textContent;
+    el.disabled = false;
+  }
 }
 
 // ── STATUS BADGE ─────────────────────
@@ -72,17 +55,37 @@ function badge(status) {
   return `<span class="badge ${cls}">${status || '—'}</span>`;
 }
 
+// ── FETCH DATA FROM SHEETS ───────────
+async function fetchRecords() {
+  try {
+    const res  = await fetch(API_URL, { redirect: 'follow' });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      allRecords = json.data || [];
+    } else {
+      showToast('Gagal fetch data: ' + json.message, 'error');
+    }
+  } catch (err) {
+    showToast('Tak dapat connect ke server.', 'error');
+    console.error(err);
+  }
+}
+
 // ── HOME ─────────────────────────────
-function renderHome() {
-  const records = getRecords();
-  const qtyOK = records.reduce((s, r) => s + (Number(r.qtyok) || 0), 0);
-  const qtyNG = records.reduce((s, r) => s + (Number(r.qtyng) || 0), 0);
-  const ncr = records.filter(r => r.ncr && r.ncr.trim() && r.ncr.toUpperCase() !== 'N/A').length;
+async function renderHome() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) setLoading(btn, true);
+
+  await fetchRecords();
+
+  const qtyOK = allRecords.reduce((s, r) => s + (Number(r['Qty OK']) || 0), 0);
+  const qtyNG = allRecords.reduce((s, r) => s + (Number(r['Qty NG']) || 0), 0);
+  const ncr   = allRecords.filter(r => r['NCR'] && r['NCR'].trim() && r['NCR'].toUpperCase() !== 'N/A').length;
 
   document.getElementById('home-stats').innerHTML = `
     <div class="stat-card">
       <div class="s-label">Total Rekod</div>
-      <div class="s-value">${records.length}</div>
+      <div class="s-value">${allRecords.length}</div>
       <div class="s-sub">Keseluruhan entri</div>
     </div>
     <div class="stat-card stat-ok">
@@ -102,35 +105,36 @@ function renderHome() {
     </div>
   `;
 
-  const tbody = document.getElementById('home-tbody');
-  const recent = records.slice(0, 10);
+  const tbody  = document.getElementById('home-tbody');
+  const recent = allRecords.slice(0, 10);
 
   if (!recent.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i data-lucide="inbox"></i>Tiada rekod lagi. Tambah rekod baru!</div></td></tr>`;
-    refreshIcons();
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span>📭</span>Tiada rekod lagi.</div></td></tr>`;
+    if (btn) setLoading(btn, false);
     return;
   }
 
   tbody.innerHTML = recent.map(r => `
     <tr>
-      <td>${r.date || '—'}</td>
-      <td>${r.routecard || '—'}</td>
-      <td>${r.part || '—'}</td>
-      <td>${r.material || '—'}</td>
-      <td>${badge(r.status)}</td>
-      <td>${r.qtyok || 0}</td>
-      <td>${r.qtyng || 0}</td>
+      <td>${r['Inspection Date'] || '—'}</td>
+      <td>${r['Route Card'] || '—'}</td>
+      <td>${r['Part Description'] || '—'}</td>
+      <td>${r['Material'] || '—'}</td>
+      <td>${badge(r['Inspection Status'])}</td>
+      <td>${r['Qty OK'] || 0}</td>
+      <td>${r['Qty NG'] || 0}</td>
     </tr>
   `).join('');
+
+  if (btn) setLoading(btn, false);
 }
 
-// ── FORM ─────────────────────────────
-document.getElementById('qc-form').addEventListener('submit', function(e) {
+// ── FORM SUBMIT ──────────────────────
+document.getElementById('qc-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.innerHTML = '<i data-lucide="loader-circle" class="spin"></i> Menyimpan...';
-  refreshIcons();
+  btn.textContent = '⏳ Menyimpan...';
 
   const record = {
     date:        document.getElementById('f-date').value,
@@ -152,14 +156,21 @@ document.getElementById('qc-form').addEventListener('submit', function(e) {
     remark:      document.getElementById('f-remark').value,
   };
 
-  addRecord(record);
-  showToast('Rekod berjaya disimpan!');
-  this.reset();
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-
-  btn.disabled = false;
-  btn.innerHTML = '<i data-lucide="save"></i> Simpan Rekod';
-  refreshIcons();
+  try {
+    const res  = await fetch(API_URL, {
+      method:   'POST',
+      mode:     'no-cors',
+      body:     JSON.stringify(record)
+    });
+    showToast('Rekod berjaya disimpan ke Google Sheets!');
+    this.reset();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  } catch (err) {
+    showToast('Gagal simpan rekod. Cuba semula.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Simpan Rekod';
+  }
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
@@ -168,32 +179,32 @@ document.getElementById('reset-btn').addEventListener('click', () => {
 });
 
 // ── REPORT ───────────────────────────
+async function renderReport() {
+  await fetchRecords();
+  populateFilters();
+  renderReportTable();
+  renderCharts();
+}
+
 function getFiltered() {
   const status   = document.getElementById('filter-status').value;
   const material = document.getElementById('filter-material').value;
   const start    = document.getElementById('filter-start').value;
   const end      = document.getElementById('filter-end').value;
 
-  return getRecords().filter(r => {
-    if (status && r.status !== status) return false;
-    if (material && r.material !== material) return false;
-    if (start && r.date && r.date < start) return false;
-    if (end && r.date && r.date > end) return false;
+  return allRecords.filter(r => {
+    if (status   && r['Inspection Status'] !== status)   return false;
+    if (material && r['Material'] !== material)           return false;
+    if (start    && r['Inspection Date'] < start)         return false;
+    if (end      && r['Inspection Date'] > end)           return false;
     return true;
   });
 }
 
-function renderReport() {
-  const records = getRecords();
-
-  // Populate filters
-  const statuses  = [...new Set(records.map(r => r.status).filter(Boolean))].sort();
-  const materials = [...new Set(records.map(r => r.material).filter(Boolean))].sort();
-  fillSelect('filter-status', statuses);
-  fillSelect('filter-material', materials);
-
-  renderReportTable();
-  renderCharts();
+function populateFilters() {
+  const unique = key => [...new Set(allRecords.map(r => r[key]).filter(Boolean))].sort();
+  fillSelect('filter-status',   unique('Inspection Status'));
+  fillSelect('filter-material', unique('Material'));
 }
 
 function fillSelect(id, options) {
@@ -204,74 +215,76 @@ function fillSelect(id, options) {
 }
 
 function renderReportTable() {
-  const data = getFiltered();
+  const data  = getFiltered();
   const tbody = document.getElementById('report-tbody');
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><i data-lucide="inbox"></i>Tiada rekod dijumpai.</div></td></tr>`;
-    refreshIcons();
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><span>📭</span>Tiada rekod dijumpai.</div></td></tr>`;
     return;
   }
 
   tbody.innerHTML = data.map(r => `
     <tr>
-      <td>${r.date || '—'}</td>
-      <td>${r.routecard || '—'}</td>
-      <td>${r.po || '—'}</td>
-      <td>${r.part || '—'}</td>
-      <td>${r.material || '—'}</td>
-      <td>${badge(r.status)}</td>
-      <td>${r.qtyok || 0}</td>
-      <td>${r.qtyng || 0}</td>
-      <td>${r.ncr || '—'}</td>
-      <td>${r.ncrstatus || '—'}</td>
-      <td>${r.remark || '—'}</td>
-      <td><button class="icon-btn" onclick="confirmDelete('${r.id}')" title="Padam"><i data-lucide="trash-2"></i></button></td>
+      <td>${r['Inspection Date'] || '—'}</td>
+      <td>${r['Route Card'] || '—'}</td>
+      <td>${r['PO#'] || '—'}</td>
+      <td>${r['Part Description'] || '—'}</td>
+      <td>${r['Material'] || '—'}</td>
+      <td>${badge(r['Inspection Status'])}</td>
+      <td>${r['Qty OK'] || 0}</td>
+      <td>${r['Qty NG'] || 0}</td>
+      <td>${r['NCR'] || '—'}</td>
+      <td>${r['NC Status'] || '—'}</td>
+      <td>${r['Remark'] || '—'}</td>
+      <td>—</td>
     </tr>
   `).join('');
-  refreshIcons();
 }
 
 function renderCharts() {
   const data = getFiltered();
 
-  // Status chart
-  const statusCount = data.reduce((a, r) => { a[r.status || 'Unknown'] = (a[r.status || 'Unknown'] || 0) + 1; return a; }, {});
-  const statusColors = { 'Pass': '#34C759', 'Fail': '#FF3B30', 'Conditional Pass': '#007AFF', 'Pending': '#FF9500', 'Unknown': '#a1a1a6' };
+  const statusCount = data.reduce((a, r) => {
+    const k = r['Inspection Status'] || 'Unknown';
+    a[k] = (a[k] || 0) + 1; return a;
+  }, {});
+
+  const matCount = data.reduce((a, r) => {
+    const k = r['Material'] || 'Unknown';
+    a[k] = (a[k] || 0) + 1; return a;
+  }, {});
+
+  const statusColors = { 'Pass':'#4ade80','Fail':'#f87171','Conditional Pass':'#60a5fa','Pending':'#fbbf24','Unknown':'#94a3b8' };
+  const top = Object.entries(matCount).sort((a,b) => b[1]-a[1]).slice(0,8);
 
   if (charts.status) charts.status.destroy();
   charts.status = new Chart(document.getElementById('chart-status'), {
     type: 'doughnut',
     data: {
       labels: Object.keys(statusCount),
-      datasets: [{ data: Object.values(statusCount), backgroundColor: Object.keys(statusCount).map(k => statusColors[k] || '#a1a1a6'), borderWidth: 0 }]
+      datasets: [{ data: Object.values(statusCount), backgroundColor: Object.keys(statusCount).map(k => statusColors[k] || '#94a3b8'), borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#1d1d1f', font: { size: 12 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#eef2ff', font: { size: 12 } } } } }
   });
-
-  // Material chart
-  const matCount = data.reduce((a, r) => { const k = r.material || 'Unknown'; a[k] = (a[k] || 0) + 1; return a; }, {});
-  const top = Object.entries(matCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
   if (charts.material) charts.material.destroy();
   charts.material = new Chart(document.getElementById('chart-material'), {
     type: 'bar',
     data: {
       labels: top.map(m => m[0]),
-      datasets: [{ label: 'Rekod', data: top.map(m => m[1]), backgroundColor: '#007AFF', borderRadius: 6 }]
+      datasets: [{ label: 'Rekod', data: top.map(m => m[1]), backgroundColor: '#4f8ef7', borderRadius: 6 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#6e6e73', maxRotation: 35 }, grid: { display: false } },
-        y: { ticks: { color: '#6e6e73' }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
+        x: { ticks: { color: '#94a3b8', maxRotation: 35 }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
       }
     }
   });
 }
 
-// Filter events
 ['filter-status','filter-material','filter-start','filter-end'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
     renderReportTable();
@@ -285,53 +298,21 @@ document.getElementById('clear-filter-btn').addEventListener('click', () => {
   renderCharts();
 });
 
-// ── DELETE ───────────────────────────
-function confirmDelete(id) {
-  deleteTargetId = id;
-  document.getElementById('modal').style.display = 'flex';
-}
-
-document.getElementById('modal-cancel').addEventListener('click', () => {
-  document.getElementById('modal').style.display = 'none';
-  deleteTargetId = null;
-});
-
-document.getElementById('modal-confirm').addEventListener('click', () => {
-  if (deleteTargetId) {
-    deleteRecord(deleteTargetId);
-    showToast('Rekod dipadam.', 'error');
-    document.getElementById('modal').style.display = 'none';
-    deleteTargetId = null;
-    renderReport();
-  }
-});
-
 // ── EXPORT CSV ───────────────────────
 document.getElementById('export-btn').addEventListener('click', () => {
   const data = getFiltered();
   if (!data.length) { showToast('Tiada data untuk export.', 'error'); return; }
 
-  const headers = ['Date','Route Card','PO','Drawing','Part Description','Qty PO','Material','Next Process','Inspector','Insp. Status','Part Status','Qty OK','Qty NG','Short','NCR','NC Status','Remark'];
-  const keys = ['date','routecard','po','drawing','part','qtypo','material','nextprocess','inspector','status','partstatus','qtyok','qtyng','short','ncr','ncrstatus','remark'];
+  const keys = ['Inspection Date','Route Card','PO#','Drawing No.','Part Description','Qty PO','Material','Next Process','Inspected By','Inspection Status','Part Status','Qty OK','Qty NG','Short','NCR','NC Status','Remark'];
+  const csv  = [keys.join(','), ...data.map(r => keys.map(k => `"${(r[k] || '').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
 
-  const csv = [headers.join(','), ...data.map(r => keys.map(k => `"${(r[k] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = `MITQC_Export_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('Export berjaya!');
 });
 
-// ── CLEAR ALL ────────────────────────
-document.getElementById('clear-all-btn').addEventListener('click', () => {
-  if (confirm('Padam SEMUA rekod? Tindakan ini tidak boleh dibatalkan.')) {
-    localStorage.removeItem(DB_KEY);
-    showToast('Semua data dipadam.', 'error');
-    renderHome();
-  }
-});
-
 // ── INIT ─────────────────────────────
 document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 renderHome();
-refreshIcons();
