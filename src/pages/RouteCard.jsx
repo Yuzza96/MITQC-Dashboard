@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search, Inbox, Hash, GitBranch, Receipt, Briefcase, Package, Layers, Boxes } from 'lucide-react';
+import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes } from 'lucide-react';
 import { findRouteCard } from '../api.js';
 
-// WO#, REV and PO# are shown in the hero above instead of a group.
+// WO# and Drawing Number are shown in the hero above instead of a group.
 const DETAIL_GROUPS = [
-  { title: 'Project & Purpose', icon: Briefcase, fields: ['PURPOSE / PROJECT', 'RFM / IHM / RGAF', 'DRAWING NUMBER'] },
+  { title: 'Route Card Info', icon: Tag, fields: ['REV', 'PO#'] },
+  { title: 'Project & Purpose', icon: Briefcase, fields: ['PURPOSE / PROJECT', 'RFM / IHM / RGAF'] },
   { title: 'Material & Coating', icon: Layers, fields: ['MATERIAL', 'COATING', 'COATING2'] },
   { title: 'Quantity', icon: Boxes, fields: ['QTY\nPO', 'QTY'] },
 ];
@@ -112,35 +113,34 @@ export default function RouteCard({ showToast }) {
                 <div className="detail-hero-title">{result.data['PART DESCRIPTION'] || '—'}</div>
                 <div className="detail-hero-badges">
                   {result.data['WO#'] && (
-                    <span className="detail-hero-badge"><Hash /><span className="b-label">WO#</span> {result.data['WO#']}</span>
+                    <span className="detail-hero-badge"><ClipboardList /><span className="b-label">Route Card</span> {result.data['WO#']}</span>
                   )}
-                  {result.data['REV'] && (
-                    <span className="detail-hero-badge"><GitBranch /><span className="b-label">REV</span> {result.data['REV']}</span>
-                  )}
-                  {result.data['PO#'] && (
-                    <span className="detail-hero-badge"><Receipt /><span className="b-label">PO#</span> {result.data['PO#']}</span>
+                  {result.data['DRAWING NUMBER'] && (
+                    <span className="detail-hero-badge"><FileText /><span className="b-label">Drawing Number</span> {result.data['DRAWING NUMBER']}</span>
                   )}
                 </div>
               </div>
-              {DETAIL_GROUPS.map(({ title, icon: Icon, fields }) => {
-                const items = fields
-                  .map(field => [field, result.data[field]])
-                  .filter(([, v]) => v !== '' && v !== null && v !== undefined);
-                if (!items.length) return null;
-                return (
-                  <div className="detail-group" key={title}>
-                    <div className="detail-group-title"><Icon /> {title}</div>
-                    <div className="detail-grid">
-                      {items.map(([field, value]) => (
-                        <div className="detail-item" key={field}>
-                          <div className="d-label">{field.replace('\n', ' ')}</div>
-                          <div className="d-value">{value.toString()}</div>
-                        </div>
-                      ))}
+              <div className="detail-groups-grid">
+                {DETAIL_GROUPS.map(({ title, icon: Icon, fields }) => {
+                  const items = fields
+                    .map(field => [field, result.data[field]])
+                    .filter(([, v]) => v !== '' && v !== null && v !== undefined);
+                  if (!items.length) return null;
+                  return (
+                    <div className="detail-group" key={title}>
+                      <div className="detail-group-title"><Icon /> {title}</div>
+                      <div className="detail-grid">
+                        {items.map(([field, value]) => (
+                          <div className="detail-item" key={field}>
+                            <div className="d-label">{field.replace('\n', ' ')}</div>
+                            <div className="d-value">{value.toString()}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </>
           )}
         </div>
