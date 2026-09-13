@@ -17,7 +17,8 @@ This repo is separate from the sibling Google Apps Script QC project one directo
 - `src/components/` — small presentational pieces: `Sidebar.jsx`, `Toast.jsx`, `Badge.jsx` (status pill).
 - `src/pages/` — one component per panel: `Home.jsx` (stats + recent-10 table), `InspectionForm.jsx` (the New Inspection form), `Reports.jsx` (filters, charts, full table, CSV export).
 - `src/index.css` — all styling: Apple-light theme, glass-card/table/chart/toast styling, responsive breakpoints. Global stylesheet, not CSS modules.
-- `Code.gs` — the Apps Script backend, deployed separately as a web app (not built/deployed by this repo's tooling — see "Backend"). Handles `?action=list` and `?action=save` over GET, returns plain JSON.
+- `Code.gs` — the Apps Script backend. Deployed via `clasp` (`.clasp.json`/`.claspignore`), not by the Vite build — see "Backend". Handles `?action=list`, `?action=save`, and `?action=findRouteCard` over GET, returns plain JSON.
+- `appsscript.json` — the Apps Script project manifest (timezone, webapp execute-as/access settings), pulled/pushed by `clasp` alongside `Code.gs`.
 - `.github/workflows/deploy.yml` — builds with Vite and deploys `dist/` to GitHub Pages via `actions/deploy-pages` on every push to `main`.
 - `AGENTS.md` — the pre-existing agent instructions for this repo (Codex-style); keep it in sync with this file if conventions change.
 
@@ -42,7 +43,15 @@ There is no client-side persistence layer. `src/api.js` is the single source of 
 
 ### Backend (Google Apps Script)
 
-`Code.gs` is not built or deployed by anything in this repo — it lives in a separate Apps Script project bound to the "Inspection Records" Google Sheet. After editing `Code.gs` here, you must manually paste the change into the Apps Script editor and create a new deployment/version for it to take effect; a commit to this repo does not update the live endpoint.
+`Code.gs` lives in a separate Apps Script project (bound to the "MITQC" Google Sheet), linked to this repo via `.clasp.json` (`scriptId`) and `clasp` (Google's official Apps Script CLI, a devDependency here). A commit to this repo does **not** update the live endpoint by itself — after editing `Code.gs`, push and deploy explicitly:
+
+```
+npx clasp push                                    # uploads Code.gs + appsscript.json
+npx clasp deployments                             # list deployments, find the one matching API_URL in src/api.js
+npx clasp deploy -i <deploymentId> -d "message"   # redeploy that same deployment (keeps the same /exec URL)
+```
+
+`clasp login` requires an interactive browser OAuth flow tied to a specific Google account — it must be run once by a human with access to the account that owns the Apps Script project (currently `QC-Fadrul@mit-mfg.com`), not something that can be scripted unattended. `.claspignore` restricts what `clasp push` uploads to just `Code.gs` and `appsscript.json` (the repo root also holds the unrelated React app, which Apps Script has no use for).
 
 `doGet(e)` branches on `e.parameter.action`: `list` returns all sheet rows as JSON, `save` appends a row built from the query parameters. Both go over plain GET — no JSONP, no POST. This works because Apps Script web app responses already carry permissive CORS headers for simple GET requests (no custom headers, no non-simple content type), so `fetch()` can read the response directly; POST would trigger a CORS preflight that Apps Script doesn't handle, which is why `save` is also a GET (with the record fields as query params) rather than a POST body.
 

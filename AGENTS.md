@@ -12,10 +12,10 @@ https://github.com/Yuzza96/MITQC-Dashboard
 
 ## Tech Stack
 - Frontend: React + Vite
-- Database: Google Sheets (Sheet ID: `16ancoOykw7JhYoBB-wh5QCmx-UG7xdQl1JMZPsmGTyI`)
-- Backend: Google Apps Script web app (`Code.gs`) — plain JSON over GET, no JSONP/POST
+- Database: Google Sheets ("MITQC" spreadsheet, personal account — see "Data Storage")
+- Backend: Google Apps Script web app (`Code.gs`), deployed/managed via `clasp`
 - Hosting: GitHub Pages, built + deployed by `.github/workflows/deploy.yml` on push to `main`
-- Charts: Chart.js via `react-chartjs-2`
+- Charts: Chart.js via `react-chartjs-2` (loaded by Reports.jsx, currently unused — see "Current Status")
 - Icons: `lucide-react`
 - Fonts: Google Fonts — Inter
 
@@ -26,14 +26,17 @@ MITQC-Dashboard/
 ├── vite.config.js                # base: '/MITQC-Dashboard/'
 ├── package.json
 ├── .github/workflows/deploy.yml  # build + deploy to Pages
-├── Code.gs                       # Apps Script backend (deployed separately — see below)
+├── Code.gs                       # Apps Script backend
+├── appsscript.json               # Apps Script project manifest
+├── .clasp.json                   # scriptId linking this repo to the Apps Script project
+├── .claspignore                  # restricts `clasp push` to Code.gs + appsscript.json
 └── src/
     ├── main.jsx
     ├── index.css                 # all styling
-    ├── App.jsx                   # sidebar + panel routing + toast state
-    ├── api.js                    # listRecords() / saveRecord()
+    ├── App.jsx                   # renders Sidebar + active panel + toast state
+    ├── api.js                    # listRecords() / saveRecord() / findRouteCard()
     ├── components/                # Sidebar, Toast, Badge
-    └── pages/                     # Home, InspectionForm, Reports
+    └── pages/                     # RouteCard (active); Home, InspectionForm, Reports (unused, kept for later)
 ```
 
 ## Design System
@@ -46,46 +49,44 @@ MITQC-Dashboard/
 - **Font**: Inter (Google Fonts)
 - **Sidebar width**: 240px (fixed, left side), collapses to icon-only under 900px
 
-## Dashboard Structure (3 panels)
+## Dashboard Structure
 
-### 🏠 Home
-- Stats overview: Total Rekod, Quantity OK, Quantity NG, NCR Aktif
-- Table: 10 rekod terbaru
+Staged rebuild in progress — sidebar currently has **one menu item only**:
 
-### 📝 New Inspection (Form Input)
-**Route Card section:**
-- Inspection Date (date, required)
-- Route Card No. (text, required)
-- PO# (text)
-- Drawing No. (text)
-- Part Description (text, required)
-- Qty PO (number)
-- Material (text)
-- Next Process (text)
-- Inspected By (text)
+### 📇 Route Card (active)
+Search-only page (`src/pages/RouteCard.jsx`), not a data-entry form:
+- "Register Route Card" card: Route Card No. input + Find/Reset
+- Searches the **`WO#`** column in the `route card import range` tab (see "Data Storage")
+- If the WO# has multiple revisions (rows), shows "This route card have multiple revision" with a button per REV; picking one re-searches with that revision
+- Once resolved to one row, shows its details as a field/value list, limited to `IMPORT_DISPLAY_COLUMNS` in `Code.gs`: PO#, RFM / IHM / RGAF, PURPOSE / PROJECT, DRAWING NUMBER, PART DESCRIPTION, QTY PO, MATERIAL, COATING, COATING2, WO#, REV, QTY
 
-**Inspection Result section:**
-- Inspection Status (select: Pass / Fail / Conditional Pass / Pending)
-- Part Status (select: Accept / Reject / On Hold)
-- Quantity OK (number)
-- Quantity NG (number)
-- Short (number)
-- NCR No. (text)
-- NC Status (select: N/A / Open / In Review / Closed)
-- Remark (textarea)
+### Deferred (code kept, not wired into App.jsx or Sidebar yet)
+- **Home** (`src/pages/Home.jsx`) — stats overview + recent-10 table
+- **New Inspection** (`src/pages/InspectionForm.jsx`) — the original "add new record" form (Route Card + Inspection Result sections)
+- **Reports** (`src/pages/Reports.jsx`) — charts, filters, full table, CSV export
 
-### 📊 Reports
-- Charts: Inspection Status (doughnut) + Top Material (bar)
-- Filters: Status, Material, Date range
-- Table: semua rekod (read-only — no delete/edit yet)
-- Export CSV button
+Add these back to `Sidebar.jsx`'s `NAV_ITEMS` and `App.jsx`'s panel switch as they're needed again.
 
 ## Data Storage
-- **Backend**: Google Sheets, via a Google Apps Script web app (`Code.gs`)
-- **Google Sheet**: `Inspection Records` tab, Sheet ID `16ancoOykw7JhYoBB-wh5QCmx-UG7xdQl1JMZPsmGTyI`
-- **Apps Script URL**: see `API_URL` in `src/api.js`
-- No client-side persistence (no localStorage) — every read/write hits the network.
-- **Important**: `Code.gs` in this repo is a *copy* for review/history. Editing it here does nothing to the live endpoint — you must paste the change into the Apps Script editor and create a new deployment/version yourself.
+
+Two separate Google Sheets tabs, in one spreadsheet file named **"MITQC"** (personal Google account — the original company-domain sheet couldn't be used because of IMPORTRANGE cross-account permission issues):
+
+- **`route card import range`** — fed by a live `IMPORTRANGE` formula from elsewhere. **Read-only from this app's side** (`findRouteCard()` in `Code.gs`) — never write to this tab; `appendRow`-ing into it would clash with the formula's spill range and produce `#REF!` errors on recalc.
+- **`Inspection record`** — a separate, plain tab for form submissions (`saveRecord()`/`listRecords()` in `Code.gs`). Currently unused since the New Inspection form isn't wired into the UI yet (see "Dashboard Structure"), but the backend function still targets it.
+
+**Apps Script URL**: see `API_URL` in `src/api.js`. No client-side persistence (no localStorage) — every read/write hits the network.
+
+### Deploying `Code.gs` changes
+
+`Code.gs` is linked to its Apps Script project via `clasp` (`.clasp.json`'s `scriptId`). A commit to this repo does **not** update the live endpoint — push and deploy explicitly:
+
+```bash
+npx clasp push                                    # uploads Code.gs + appsscript.json
+npx clasp deployments                             # find the deployment ID matching API_URL
+npx clasp deploy -i <deploymentId> -d "message"   # redeploy it (keeps the same /exec URL)
+```
+
+`clasp login` is a one-time interactive browser OAuth step tied to a specific Google account (currently `QC-Fadrul@mit-mfg.com`, the owner of the Apps Script project) — it can't be scripted unattended, but only needs to be run once per machine.
 
 ## Git Workflow
 ```bash
@@ -98,20 +99,22 @@ Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds with Vit
 ## Developer Info
 - GitHub username: Yuzza96
 - Company: MIT Manufacturing (mit-mfg.com)
-- Google account (work): mit-mfg.com domain
-- Google account (personal): peyo23dude@gmail.com
+- Google account (work): mit-mfg.com domain — owns the Apps Script project (`clasp login` identity)
+- Google account (personal): peyo23dude@gmail.com — owns the "MITQC" spreadsheet
 
 ## Coding Conventions
-- Guna Bahasa Melayu untuk UI labels dan toast messages
+- Guna Bahasa Melayu untuk UI labels dan toast messages; screens explicitly modeled on an English reference design (e.g. "Register Route Card", "Find", "Reset") can stay English to match
 - Semua comments dalam English
 - React function components + hooks only — no class components, no state management library (app is small enough for local `useState`/`useMemo`)
-- Field names (form state ↔ API params ↔ sheet headers) must be kept in sync across `src/pages/InspectionForm.jsx`, `Code.gs`'s `fieldMap`, and every reader in `src/pages/Home.jsx` / `src/pages/Reports.jsx` — see `CLAUDE.md` for the full list
 - Jangan guna localStorage untuk data production — guna Google Sheets sahaja
-- Selepas buat sebarang perubahan: run `npm run build` to confirm it still builds, then `git add . && git commit -m "update" && git push`
+- Never `appendRow`/write into `route card import range` — read-only, see "Data Storage"
+- Selepas buat sebarang perubahan kat frontend: run `npm run build` to confirm it still builds, then `git add . && git commit -m "update" && git push`
+- Selepas ubah `Code.gs`: `npx clasp push` + `npx clasp deploy -i <id>` (see above) — a git push alone does not update the live backend
 
 ## Current Status
-- ✅ GitHub repo setup
-- ✅ GitHub Pages live (via GitHub Actions build)
-- ✅ Dashboard rebuilt on React + Vite (Home, New Inspection, Reports)
-- ✅ Google Sheets integration working (plain fetch GET, no JSONP)
-- ⏳ Row delete/edit from the Reports table (not implemented — table is read-only + CSV export only)
+- ✅ GitHub repo setup, GitHub Pages live (via GitHub Actions build)
+- ✅ Dashboard rebuilt on React + Vite
+- ✅ Switched to personal-account "MITQC" spreadsheet; `route card import range` (IMPORTRANGE, read-only) kept separate from `Inspection record` (form writes)
+- ✅ Route Card search (single menu item) — WO# lookup with multi-revision picker
+- ✅ `clasp` wired up for direct `Code.gs` push/deploy
+- ⏳ Home / New Inspection / Reports — built, kept in `src/pages/`, not yet wired back into the sidebar
