@@ -43,6 +43,7 @@ export default function RouteCard({ showToast }) {
         setResult(res);
         setResolvedIndex(index ?? null);
         if (!res.found) showToast('Route Card not found.', 'error');
+        else refreshPending(); // keep the "already registered" check fresh
       }
     } catch (err) {
       showToast('Failed to search route card.', 'error');
@@ -71,6 +72,11 @@ export default function RouteCard({ showToast }) {
     setResult(null);
     setRevisions(null);
   }
+
+  const alreadyRegistered = !!(result?.found && pending?.some(r =>
+    (r['WO#'] || '').toString().trim().toLowerCase() === (result.data['WO#'] || '').toString().trim().toLowerCase() &&
+    (r['REV'] || '').toString().trim().toLowerCase() === (result.data['REV'] || '').toString().trim().toLowerCase()
+  ));
 
   async function handleRegister() {
     setRegistering(true);
@@ -136,8 +142,8 @@ export default function RouteCard({ showToast }) {
           {result.found ? (
             <div className="table-header-row">
               <h2 className="card-title" style={{ margin: 0 }}>Details</h2>
-              <button type="button" className="btn-primary" onClick={handleRegister} disabled={registering}>
-                {registering ? 'Registering...' : 'Register Route Card'}
+              <button type="button" className="btn-primary" onClick={handleRegister} disabled={registering || alreadyRegistered}>
+                {registering ? 'Registering...' : alreadyRegistered ? 'Already Registered' : 'Register Route Card'}
               </button>
             </div>
           ) : (
