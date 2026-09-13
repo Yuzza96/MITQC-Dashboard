@@ -27,3 +27,19 @@ export async function findRouteCard(wo, index) {
   if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
   return data; // { found: boolean, multiple?: boolean, revisions?: {index,label}[], data?: {...} }
 }
+
+export async function registerRouteCard(wo, index) {
+  const params = { action: 'registerRouteCard', wo };
+  if (index !== undefined && index !== null) params.index = index;
+  const res = await fetch(`${API_URL}?${new URLSearchParams(params)}`);
+  const data = await res.json();
+  if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
+  return data;
+}
+
+export async function listPendingInspections() {
+  const res = await fetch(`${API_URL}?${new URLSearchParams({ action: 'listPending' })}`);
+  const data = await res.json();
+  if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
+  return data.data || [];
+}

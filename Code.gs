@@ -19,6 +19,12 @@
 const SHEET_NAME = 'Inspection record';
 const IMPORT_SHEET_NAME = 'route card import range';
 const IMPORT_WO_COLUMN = 'WO#';
+const PENDING_SHEET_NAME = 'Pending Inspection';
+const PENDING_COLUMNS = [
+  'WO#', 'REV', 'PART DESCRIPTION', 'DRAWING NUMBER', 'PO#',
+  'PURPOSE / PROJECT', 'RFM / IHM / RGAF', 'MATERIAL', 'COATING',
+  'COATING2', 'QTY\nPO', 'QTY', 'Registered At',
+];
 
 // Only these columns are returned/shown for a matched route card -
 // the import tab has dozens of per-operation (OP 10..OP 150) tracking
@@ -36,6 +42,8 @@ function doGet(e) {
   try {
     if (action === 'save') result = saveRecord(e.parameter);
     else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo, e.parameter.index);
+    else if (action === 'registerRouteCard') result = registerRouteCard(e.parameter.wo, e.parameter.index);
+    else if (action === 'listPending') result = listPending();
     else result = listRecords();
   } catch (err) {
     result = { status: 'error', message: err.message };
@@ -150,6 +158,64 @@ function findRouteCard(wo, index) {
   const data = {};
   headers.forEach((h, i) => { if (IMPORT_DISPLAY_COLUMNS.includes(h)) data[h] = rowValues[i]; });
   return { status: 'ok', found: true, data };
+}
+
+// Auto-created the first time it's needed, so there's no manual setup
+// step for the user - just a plain tab, not fed by IMPORTRANGE, so
+// appendRow() here is safe (unlike the import tab).
+function getPendingSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(PENDING_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(PENDING_SHEET_NAME);
+    sheet.getRange(1, 1, 1, PENDING_COLUMNS.length).setValues([PENDING_COLUMNS]);
+  }
+  return sheet;
+}
+
+// Registers a resolved route card (found via findRouteCard) into the
+// Pending Inspection tab. Blocks re-registering the same WO#+REV pair
+// rather than silently duplicating it.
+function registerRouteCard(wo, index) {
+  const lookup = findRouteCard(wo, index);
+  if (lookup.status !== 'ok') return lookup;
+  if (!lookup.found) return { status: 'error', message: 'Route Card not found' };
+  if (lookup.multiple) return { status: 'error', message: 'Multiple revisions found - resolve the revision first' };
+
+  const data = lookup.data;
+  const woValue = (data['WO#'] || '').toString().trim().toLowerCase();
+  const revValue = (data['REV'] || '').toString().trim().toLowerCase();
+
+  const sheet = getPendingSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+    const alreadyRegistered = existing.some(([existingWo, existingRev]) =>
+      existingWo.toString().trim().toLowerCase() === woValue &&
+      existingRev.toString().trim().toLowerCase() === revValue
+    );
+    if (alreadyRegistered) {
+      return { status: 'error', message: 'This route card revision is already registered' };
+    }
+  }
+
+  const row = PENDING_COLUMNS.map(col => col === 'Registered At' ? new Date() : (data[col] !== undefined ? data[col] : ''));
+  sheet.appendRow(row);
+  return { status: 'ok' };
+}
+
+function listPending() {
+  const sheet = getPendingSheet();
+  const values = sheet.getDataRange().getValues();
+  const headers = values.shift();
+  const data = values
+    .filter(row => row.some(cell => cell !== ''))
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+  return { status: 'ok', data };
 }
 
 function listRecords() {

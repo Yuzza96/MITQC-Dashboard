@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes, Clock } from 'lucide-react';
-import { findRouteCard } from '../api.js';
+import { findRouteCard, registerRouteCard, listPendingInspections } from '../api.js';
 
 // WO# and Drawing Number are shown in the hero above instead of a group.
 const DETAIL_GROUPS = [
@@ -13,8 +13,23 @@ const DETAIL_GROUPS = [
 export default function RouteCard({ showToast }) {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
+  const [resolvedIndex, setResolvedIndex] = useState(null);
   const [revisions, setRevisions] = useState(null);
   const [searching, setSearching] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [pending, setPending] = useState(null);
+
+  function refreshPending() {
+    listPendingInspections()
+      .then(setPending)
+      .catch(err => {
+        showToast('Failed to load pending inspections.', 'error');
+        console.error(err);
+        setPending([]);
+      });
+  }
+
+  useEffect(() => { refreshPending(); }, []);
 
   async function runSearch(wo, index) {
     setSearching(true);
@@ -26,6 +41,7 @@ export default function RouteCard({ showToast }) {
       } else {
         setRevisions(null);
         setResult(res);
+        setResolvedIndex(index ?? null);
         if (!res.found) showToast('Route Card not found.', 'error');
       }
     } catch (err) {
@@ -54,6 +70,20 @@ export default function RouteCard({ showToast }) {
     setQuery('');
     setResult(null);
     setRevisions(null);
+  }
+
+  async function handleRegister() {
+    setRegistering(true);
+    try {
+      await registerRouteCard(query.trim(), resolvedIndex);
+      showToast('Route Card registered!');
+      refreshPending();
+    } catch (err) {
+      showToast(err.message || 'Failed to register route card.', 'error');
+      console.error(err);
+    } finally {
+      setRegistering(false);
+    }
   }
 
   return (
@@ -106,8 +136,9 @@ export default function RouteCard({ showToast }) {
           {result.found ? (
             <div className="table-header-row">
               <h2 className="card-title" style={{ margin: 0 }}>Details</h2>
-              {/* TODO: wire up the actual register action */}
-              <button type="button" className="btn-primary">Register Route Card</button>
+              <button type="button" className="btn-primary" onClick={handleRegister} disabled={registering}>
+                {registering ? 'Registering...' : 'Register Route Card'}
+              </button>
             </div>
           ) : (
             <h2 className="card-title">Details</h2>
@@ -154,7 +185,6 @@ export default function RouteCard({ showToast }) {
         </div>
       )}
 
-      {/* TODO: backed by real data once Register Route Card writes somewhere */}
       <div className="glass-card">
         <h2 className="card-title"><Clock /> Pending Inspection</h2>
         <div className="table-scroll">
@@ -165,9 +195,19 @@ export default function RouteCard({ showToast }) {
               </tr>
             </thead>
             <tbody>
-              <tr><td colSpan={4}>
-                <div className="empty-state"><Inbox />No pending route cards</div>
-              </td></tr>
+              {pending && pending.length === 0 && (
+                <tr><td colSpan={4}>
+                  <div className="empty-state"><Inbox />No pending route cards</div>
+                </td></tr>
+              )}
+              {(pending || []).map((r, i) => (
+                <tr key={i}>
+                  <td>{r['WO#'] || '—'}</td>
+                  <td>{r['REV'] || '—'}</td>
+                  <td>{r['PART DESCRIPTION'] || '—'}</td>
+                  <td>{r['DRAWING NUMBER'] || '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
