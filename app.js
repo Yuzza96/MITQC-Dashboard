@@ -3,7 +3,6 @@
 //  Backend: Google Sheets via Apps Script
 // ═══════════════════════════════════════
 
-// ⚠️ TUKAR ini lepas deploy Apps Script
 const API_URL = 'https://script.google.com/macros/s/AKfycbweY8tsHnlXUNloDu3-JFmanSX0uoBdK8lrdBCgTJeacDaUI0RUXe973xnYg3FgdSEOuw/exec';
 
 let allRecords = [];
@@ -15,7 +14,6 @@ function showPanel(id) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelector(`[data-panel="${id}"]`).classList.add('active');
-
   if (id === 'home') renderHome();
   if (id === 'report') renderReport();
 }
@@ -33,18 +31,6 @@ function showToast(msg, type = 'success') {
   t._timer = setTimeout(() => t.className = 'toast', 3500);
 }
 
-// ── LOADING STATE ────────────────────
-function setLoading(el, loading) {
-  if (loading) {
-    el.dataset.orig = el.textContent;
-    el.textContent = '⏳ Loading...';
-    el.disabled = true;
-  } else {
-    el.textContent = el.dataset.orig || el.textContent;
-    el.disabled = false;
-  }
-}
-
 // ── STATUS BADGE ─────────────────────
 function badge(status) {
   const s = (status || '').toLowerCase();
@@ -55,28 +41,48 @@ function badge(status) {
   return `<span class="badge ${cls}">${status || '—'}</span>`;
 }
 
-// ── FETCH DATA FROM SHEETS ───────────
-async function fetchRecords() {
-  try {
-    const res  = await fetch(API_URL, { redirect: 'follow' });
-    const json = await res.json();
-    if (json.status === 'ok') {
-      allRecords = json.data || [];
-    } else {
-      showToast('Gagal fetch data: ' + json.message, 'error');
-    }
-  } catch (err) {
-    showToast('Tak dapat connect ke server.', 'error');
-    console.error(err);
-  }
+// ── FETCH DATA (JSONP — bypass CORS) ─
+function fetchRecords() {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'mitqc_cb_' + Date.now();
+    const script = document.createElement('script');
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      if (data && data.status === 'ok') {
+        allRecords = data.data || [];
+        resolve(allRecords);
+      } else {
+        reject(new Error(data?.message || 'Unknown error'));
+      }
+    };
+
+    script.src = API_URL + '?callback=' + callbackName;
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error('Script load failed'));
+    };
+    document.body.appendChild(script);
+  });
 }
 
 // ── HOME ─────────────────────────────
 async function renderHome() {
-  const btn = document.getElementById('refresh-btn');
-  if (btn) setLoading(btn, true);
+  document.getElementById('home-stats').innerHTML = `
+    <div class="stat-card"><div class="s-label">Loading...</div><div class="s-value">—</div></div>
+    <div class="stat-card"><div class="s-label">Loading...</div><div class="s-value">—</div></div>
+    <div class="stat-card"><div class="s-label">Loading...</div><div class="s-value">—</div></div>
+    <div class="stat-card"><div class="s-label">Loading...</div><div class="s-value">—</div></div>
+  `;
 
-  await fetchRecords();
+  try {
+    await fetchRecords();
+  } catch (err) {
+    showToast('Gagal load data.', 'error');
+    console.error(err);
+  }
 
   const qtyOK = allRecords.reduce((s, r) => s + (Number(r['Qty OK']) || 0), 0);
   const qtyNG = allRecords.reduce((s, r) => s + (Number(r['Qty NG']) || 0), 0);
@@ -109,8 +115,7 @@ async function renderHome() {
   const recent = allRecords.slice(0, 10);
 
   if (!recent.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span>📭</span>Tiada rekod lagi.</div></td></tr>`;
-    if (btn) setLoading(btn, false);
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span>📭</span>Tiada rekod lagi. Tambah rekod baru!</div></td></tr>`;
     return;
   }
 
@@ -125,8 +130,6 @@ async function renderHome() {
       <td>${r['Qty NG'] || 0}</td>
     </tr>
   `).join('');
-
-  if (btn) setLoading(btn, false);
 }
 
 // ── FORM SUBMIT ──────────────────────
@@ -157,16 +160,16 @@ document.getElementById('qc-form').addEventListener('submit', async function(e) 
   };
 
   try {
-    const res  = await fetch(API_URL, {
-      method:   'POST',
-      mode:     'no-cors',
-      body:     JSON.stringify(record)
+    await fetch(API_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify(record)
     });
-    showToast('Rekod berjaya disimpan ke Google Sheets!');
+    showToast('Rekod berjaya disimpan!');
     this.reset();
     document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   } catch (err) {
-    showToast('Gagal simpan rekod. Cuba semula.', 'error');
+    showToast('Gagal simpan rekod.', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '💾 Simpan Rekod';
@@ -180,7 +183,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
 
 // ── REPORT ───────────────────────────
 async function renderReport() {
-  await fetchRecords();
+  try { await fetchRecords(); } catch (err) { showToast('Gagal load data.', 'error'); }
   populateFilters();
   renderReportTable();
   renderCharts();
@@ -193,10 +196,10 @@ function getFiltered() {
   const end      = document.getElementById('filter-end').value;
 
   return allRecords.filter(r => {
-    if (status   && r['Inspection Status'] !== status)   return false;
-    if (material && r['Material'] !== material)           return false;
-    if (start    && r['Inspection Date'] < start)         return false;
-    if (end      && r['Inspection Date'] > end)           return false;
+    if (status   && r['Inspection Status'] !== status) return false;
+    if (material && r['Material'] !== material)         return false;
+    if (start    && r['Inspection Date'] < start)       return false;
+    if (end      && r['Inspection Date'] > end)         return false;
     return true;
   });
 }
@@ -286,26 +289,20 @@ function renderCharts() {
 }
 
 ['filter-status','filter-material','filter-start','filter-end'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => {
-    renderReportTable();
-    renderCharts();
-  });
+  document.getElementById(id).addEventListener('change', () => { renderReportTable(); renderCharts(); });
 });
 
 document.getElementById('clear-filter-btn').addEventListener('click', () => {
   ['filter-status','filter-material','filter-start','filter-end'].forEach(id => document.getElementById(id).value = '');
-  renderReportTable();
-  renderCharts();
+  renderReportTable(); renderCharts();
 });
 
 // ── EXPORT CSV ───────────────────────
 document.getElementById('export-btn').addEventListener('click', () => {
   const data = getFiltered();
   if (!data.length) { showToast('Tiada data untuk export.', 'error'); return; }
-
   const keys = ['Inspection Date','Route Card','PO#','Drawing No.','Part Description','Qty PO','Material','Next Process','Inspected By','Inspection Status','Part Status','Qty OK','Qty NG','Short','NCR','NC Status','Remark'];
-  const csv  = [keys.join(','), ...data.map(r => keys.map(k => `"${(r[k] || '').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
-
+  const csv  = [keys.join(','), ...data.map(r => keys.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = `MITQC_Export_${new Date().toISOString().slice(0,10)}.csv`;
