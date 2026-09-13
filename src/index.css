@@ -287,6 +287,30 @@ tbody tr:hover { background: rgba(0,122,255,0.04); }
 .toast.error { border-left: 3px solid var(--danger); }
 .toast.error svg { color: var(--danger); }
 
+/* ── ROUTE CARD DETAILS ── */
+.detail-group { margin-bottom: 22px; }
+.detail-group:last-child { margin-bottom: 0; }
+.detail-group-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-group-title svg { width: 15px; height: 15px; color: var(--accent); }
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+.detail-item .d-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.detail-item .d-value { font-size: 14.5px; font-weight: 600; color: var(--text); }
+
 /* ── EMPTY STATE ── */
 .empty-state {
   display: flex; flex-direction: column; align-items: center;

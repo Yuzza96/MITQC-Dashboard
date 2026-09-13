@@ -1,6 +1,14 @@
 import { useState } from 'react';
-import { Search, Inbox } from 'lucide-react';
+import { Search, Inbox, Hash, Briefcase, Package, Layers, Boxes } from 'lucide-react';
 import { findRouteCard } from '../api.js';
+
+const DETAIL_GROUPS = [
+  { title: 'Route Card Info', icon: Hash, fields: ['WO#', 'REV', 'PO#'] },
+  { title: 'Project & Purpose', icon: Briefcase, fields: ['PURPOSE / PROJECT', 'RFM / IHM / RGAF'] },
+  { title: 'Part Details', icon: Package, fields: ['PART DESCRIPTION', 'DRAWING NUMBER'] },
+  { title: 'Material & Coating', icon: Layers, fields: ['MATERIAL', 'COATING', 'COATING2'] },
+  { title: 'Quantity', icon: Boxes, fields: ['QTY\nPO', 'QTY'] },
+];
 
 export default function RouteCard({ showToast }) {
   const [query, setQuery] = useState('');
@@ -99,20 +107,25 @@ export default function RouteCard({ showToast }) {
           {!result.found ? (
             <div className="empty-state"><Inbox />Route Card tidak dijumpai.</div>
           ) : (
-            <div className="table-scroll">
-              <table>
-                <tbody>
-                  {Object.entries(result.data)
-                    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
-                    .map(([field, value]) => (
-                      <tr key={field}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-muted)', width: '35%' }}>{field}</td>
-                        <td>{value.toString()}</td>
-                      </tr>
+            DETAIL_GROUPS.map(({ title, icon: Icon, fields }) => {
+              const items = fields
+                .map(field => [field, result.data[field]])
+                .filter(([, v]) => v !== '' && v !== null && v !== undefined);
+              if (!items.length) return null;
+              return (
+                <div className="detail-group" key={title}>
+                  <div className="detail-group-title"><Icon /> {title}</div>
+                  <div className="detail-grid">
+                    {items.map(([field, value]) => (
+                      <div className="detail-item" key={field}>
+                        <div className="d-label">{field.replace('\n', ' ')}</div>
+                        <div className="d-value">{value.toString()}</div>
+                      </div>
                     ))}
-                </tbody>
-              </table>
-            </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
