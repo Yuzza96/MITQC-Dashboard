@@ -1,9 +1,13 @@
 // ═══════════════════════════════════════
 //  MITQC Dashboard — Apps Script backend
 //  Paste this into the Apps Script project
-//  bound to the "route card import range" sheet,
+//  bound to the "Inspection record" sheet,
 //  then redeploy the web app (New deployment
 //  or "Manage deployments" → edit → new version).
+//
+//  Kept separate from the "route card import range" tab
+//  on purpose — that tab has a live IMPORTRANGE formula,
+//  and appendRow() here would clash with its spill range.
 //
 //  Plain JSON over GET — no JSONP. Apps Script
 //  web app responses already carry permissive
@@ -12,7 +16,7 @@
 //  response body directly.
 // ═══════════════════════════════════════
 
-const SHEET_NAME = 'route card import range';
+const SHEET_NAME = 'Inspection record';
 
 function doGet(e) {
   const action = (e.parameter.action || 'list');
