@@ -116,7 +116,6 @@ body {
   flex: 1; height: 100vh;
   overflow-y: auto; padding: 32px 32px;
 }
-.main.standalone { margin-left: 0; }
 
 .panel { animation: fadeUp 0.22s ease; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -303,7 +302,6 @@ tbody tr:hover { background: rgba(0,122,255,0.04); }
   .logo-text, .nav-btn > span:not(.nav-icon-badge), .nav-label { display: none; }
   .nav-btn { justify-content: center; }
   .main { margin-left: 60px; padding: 20px 14px; }
-  .main.standalone { margin-left: 0; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .charts-row { grid-template-columns: 1fr; }

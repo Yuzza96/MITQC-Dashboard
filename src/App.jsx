@@ -1,14 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
+import Sidebar from './components/Sidebar.jsx';
 import Toast from './components/Toast.jsx';
 import RouteCard from './pages/RouteCard.jsx';
 
-// Sementara: sidebar & menu lain (Home/Reports/Inspection Result) dibuang
-// buat masa ni — fokus siapkan menu "Route Card" dulu. Menu lain akan
+// Sementara: menu lain (Home/Reports/Inspection Result) dibuang buat
+// masa ni — fokus siapkan menu "Route Card" dulu. Menu lain akan
 // ditambah semula kemudian (lihat src/pages/Home.jsx, Reports.jsx,
-// InspectionForm.jsx dan src/components/Sidebar.jsx — kekal, cuma tak
-// digunakan sekarang).
+// InspectionForm.jsx — kekal, cuma tak digunakan sekarang).
 
 export default function App() {
+  const [activePanel, setActivePanel] = useState('routecard');
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -20,8 +21,9 @@ export default function App() {
 
   return (
     <>
-      <main className="main standalone">
-        <RouteCard showToast={showToast} />
+      <Sidebar activePanel={activePanel} onNavigate={setActivePanel} />
+      <main className="main">
+        {activePanel === 'routecard' && <RouteCard showToast={showToast} />}
       </main>
       <Toast toast={toast} />
     </>

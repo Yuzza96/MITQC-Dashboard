@@ -1,9 +1,9 @@
-import { ShieldCheck, Home, ClipboardList, BarChart3 } from 'lucide-react';
+import { ShieldCheck, ClipboardList } from 'lucide-react';
 
+// Sementara: menu lain (Home, Reports, ...) belum ditambah semula.
+// Tambah balik entri dalam senarai ni bila panel tu dah siap.
 const NAV_ITEMS = [
-  { id: 'home', label: 'Home', icon: Home, badgeClass: 'badge-slate' },
-  { id: 'form', label: 'New Inspection', icon: ClipboardList, badgeClass: 'badge-green' },
-  { id: 'report', label: 'Reports', icon: BarChart3, badgeClass: 'badge-orange' },
+  { id: 'routecard', label: 'Route Card', icon: ClipboardList, badgeClass: 'badge-green' },
 ];
 
 export default function Sidebar({ activePanel, onNavigate }) {
