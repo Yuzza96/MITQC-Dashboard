@@ -19,84 +19,46 @@ const elements = {
 
 let rawData = [];
 let currentData = [];
-let charts = {
-  status: null,
-  model: null,
-};
+let charts = { status: null, model: null };
 
-const HEADERS = [
-  'Index',
-  'Date IN',
-  'Sender by',
-  'Route Card',
-  'Part Name',
-  'Part ID',
-  'PO No',
-  'RFM No',
-  'Model',
-  'Quantity',
-  'Next Process',
-  'Status',
-  'Part Status',
-  'Inspection Date',
-  'Inspected By.',
-  'Inspection Status',
-  'Quantity OK',
-  'Quantity NG',
-  'Short',
-  'NCR',
-  'NCR Status',
-  'Rejected',
-  'Status (Final)',
-  'IGT No.',
-  'Remark',
-];
-
+// Map actual Google Sheet column headers → normalized field names
 const NORMALIZE_MAP = {
-  '': 'Index',
-  '  ': 'Index',
-  'Date IN': 'DateIN',
-  'Sender by': 'SenderBy',
-  'Route Card': 'RouteCard',
-  'Part Name': 'PartName',
-  'Part ID': 'PartID',
-  'PO No': 'PONo',
-  'RFM No': 'RFMNo',
-  'Model': 'Model',
-  'Quantity': 'Quantity',
-  'Next Process': 'NextProcess',
-  'Status': 'Status',
-  'Part Status': 'PartStatus',
   'Inspection Date': 'InspectionDate',
-  'Inspected By.': 'InspectedBy',
+  'Route Card': 'RouteCard',
+  'PO#': 'PONo',
+  'DRAWING NUM': 'DrawingNum',
+  'PART DESCRIPTION': 'PartDescription',
+  'QTY PO': 'QtyPO',
+  'MATERIAL': 'Material',
   'Inspection Status': 'InspectionStatus',
   'Quantity OK': 'QuantityOK',
-  'Quantity NG': 'QuantityNG',
+  'Quantity Not Good': 'QuantityNG',
   'Short': 'Short',
   'NCR': 'NCR',
-  'NCR Status': 'NCRStatus',
-  'Rejected': 'Rejected',
-  'Status (Final)': 'FinalStatus',
-  'IGT No.': 'IGTNo',
+  'NC Status': 'NCRStatus',
+  'Part Status': 'PartStatus',
+  'Next Process': 'NextProcess',
   'Remark': 'Remark',
+  'IGT No.': 'IGTNo',
+  'Inspected By': 'InspectedBy',
+  'Inspected By.': 'InspectedBy',
 };
 
-const displayHeaders = [
-  'Date IN',
-  'Route Card',
-  'Part Name',
-  'Part ID',
-  'Model',
-  'Quantity',
-  'Next Process',
-  'Status',
-  'Inspection Date',
-  'InspectionStatus',
-  'Quantity OK',
-  'Quantity NG',
-  'NCR',
-  'NCR Status',
-  'Remark',
+// Columns to show in the table
+const tableHeaders = [
+  { key: 'InspectionDate', label: 'Inspection Date' },
+  { key: 'RouteCard',      label: 'Route Card' },
+  { key: 'PONo',           label: 'PO#' },
+  { key: 'DrawingNum',     label: 'Drawing No.' },
+  { key: 'PartDescription',label: 'Part Description' },
+  { key: 'QtyPO',          label: 'Qty PO' },
+  { key: 'Material',       label: 'Material' },
+  { key: 'InspectionStatus',label: 'Insp. Status' },
+  { key: 'QuantityOK',     label: 'Qty OK' },
+  { key: 'QuantityNG',     label: 'Qty NG' },
+  { key: 'Short',          label: 'Short' },
+  { key: 'NCR',            label: 'NCR' },
+  { key: 'NCRStatus',      label: 'NC Status' },
 ];
 
 function parseCsv(text) {
@@ -105,124 +67,84 @@ function parseCsv(text) {
   let insideQuotes = false;
   let row = [];
 
-  for (let i = 0; i < text.length; i += 1) {
+  for (let i = 0; i < text.length; i++) {
     const char = text[i];
     const next = text[i + 1];
 
     if (char === '"') {
-      if (insideQuotes && next === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        insideQuotes = !insideQuotes;
-      }
+      if (insideQuotes && next === '"') { current += '"'; i++; }
+      else { insideQuotes = !insideQuotes; }
       continue;
     }
-
-    if (char === ',' && !insideQuotes) {
-      row.push(current);
-      current = '';
-      continue;
-    }
-
+    if (char === ',' && !insideQuotes) { row.push(current); current = ''; continue; }
     if ((char === '\n' || char === '\r') && !insideQuotes) {
-      if (char === '\r' && next === '\n') {
-        i += 1;
-      }
+      if (char === '\r' && next === '\n') i++;
       row.push(current);
       rows.push(row);
-      row = [];
-      current = '';
+      row = []; current = '';
       continue;
     }
-
     current += char;
   }
-
-  if (current || row.length) {
-    row.push(current);
-    rows.push(row);
-  }
-
+  if (current || row.length) { row.push(current); rows.push(row); }
   return rows.filter(r => r.length > 1 || (r.length === 1 && r[0]));
 }
 
-function normalizeHeader(raw, index) {
+function normalizeHeader(raw) {
   const clean = raw.trim();
-  if (clean in NORMALIZE_MAP) {
-    return NORMALIZE_MAP[clean];
-  }
-  if (clean === 'Status' && index === 22) {
-    return 'FinalStatus';
-  }
+  if (NORMALIZE_MAP[clean]) return NORMALIZE_MAP[clean];
   return clean.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
 }
 
 function parseDate(value) {
-  if (value === null || value === undefined || value === '') {
-    return '';
-  }
-  if (!Number.isNaN(Number(value)) && value !== '') {
+  if (!value && value !== 0) return '';
+  if (!isNaN(Number(value)) && value !== '') {
     const raw = Number(value);
     if (raw > 1000 && raw < 60000) {
       const epoch = (raw - 25569) * 86400 * 1000;
       const date = new Date(epoch);
-      if (!Number.isNaN(date.getTime())) {
-        return date.toISOString().slice(0, 10);
-      }
+      if (!isNaN(date.getTime())) return date.toISOString().slice(0, 10);
     }
   }
   const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
-  }
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
   return String(value);
 }
 
 function buildRecords(rows) {
   if (!rows.length) return [];
-  const headerRow = rows[0].map((cell, index) => normalizeHeader(String(cell || ''), index));
+  const headerRow = rows[0].map(cell => normalizeHeader(String(cell || '')));
   return rows.slice(1).map(rawRow => {
     const record = {};
     headerRow.forEach((field, idx) => {
       record[field] = rawRow[idx] !== undefined ? rawRow[idx] : '';
     });
-    record.DateIN = parseDate(record.DateIN);
     record.InspectionDate = parseDate(record.InspectionDate);
-    record.Quantity = Number(record.Quantity) || 0;
     record.QuantityOK = Number(record.QuantityOK) || 0;
     record.QuantityNG = Number(record.QuantityNG) || 0;
-    record.Model = String(record.Model || 'Unknown').trim();
+    record.QtyPO = Number(record.QtyPO) || 0;
     record.InspectionStatus = String(record.InspectionStatus || '').trim();
     record.PartStatus = String(record.PartStatus || '').trim();
     record.NextProcess = String(record.NextProcess || '').trim();
-    record.Status = String(record.Status || '').trim();
+    record.Material = String(record.Material || '').trim();
     return record;
-  }).filter(record => record.PartName || record.PartID || record.Model);
-}
-
-function getSheetUrl() {
-  const config = window.SHEET_CONFIG || {};
-  return config.useCsvExport ? config.getSheetUrl() : '';
+  }).filter(r => r.RouteCard || r.PartDescription || r.PONo);
 }
 
 async function loadData() {
   const config = window.SHEET_CONFIG || {};
-  const url = getSheetUrl();
-
   if (!config.sheetId || config.sheetId === 'YOUR_GOOGLE_SHEET_ID') {
-    alert('Please update dashboard/config.js with your Google Sheet ID.');
+    alert('Sila update config.js dengan Google Sheet ID korang.');
     return;
   }
 
-  elements.sheetName.textContent = config.sheetLabel || config.sheetName;
+  const url = config.getSheetUrl();
+  elements.sheetName.textContent = config.sheetLabel;
   elements.sheetUrl.textContent = url;
 
   try {
     const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`);
-    }
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const text = await response.text();
     const rows = parseCsv(text);
     rawData = buildRecords(rows);
@@ -230,7 +152,7 @@ async function loadData() {
     refreshUI();
   } catch (error) {
     console.error(error);
-    alert('Unable to load the Google Sheet. Make sure the sheet is published to the web and the ID is correct.');
+    alert('Tak dapat load Google Sheet. Pastikan sheet dah published to web.');
   }
 }
 
@@ -243,22 +165,19 @@ function refreshUI() {
 
 function renderSummary(data) {
   const total = data.length;
-  const ok = data.reduce((sum, record) => sum + (record.QuantityOK || 0), 0);
-  const ng = data.reduce((sum, record) => sum + (record.QuantityNG || 0), 0);
-  const ncr = data.filter(record => String(record.NCR || '').trim() !== '' && String(record.NCR || '').trim().toUpperCase() !== 'N/A').length;
-  const rejected = data.filter(record => String(record.Rejected || '').trim() !== '').length;
+  const qtyOK = data.reduce((s, r) => s + (r.QuantityOK || 0), 0);
+  const qtyNG = data.reduce((s, r) => s + (r.QuantityNG || 0), 0);
+  const ncr = data.filter(r => String(r.NCR || '').trim() !== '' && String(r.NCR || '').toUpperCase() !== 'N/A').length;
 
   elements.recordCount.textContent = total;
   elements.summaryCards.innerHTML = '';
 
-  const cards = [
+  [
     { label: 'Total Records', value: total },
-    { label: 'Quantity OK', value: ok },
-    { label: 'Quantity NG', value: ng },
+    { label: 'Quantity OK', value: qtyOK },
+    { label: 'Quantity NG', value: qtyNG },
     { label: 'NCR Records', value: ncr },
-  ];
-
-  cards.forEach(card => {
+  ].forEach(card => {
     const node = document.createElement('div');
     node.className = 'card';
     node.innerHTML = `<h3>${card.label}</h3><strong>${card.value}</strong>`;
@@ -267,86 +186,78 @@ function renderSummary(data) {
 }
 
 function renderFilters(data) {
-  const models = Array.from(new Set(data.map(r => r.Model).filter(Boolean))).sort();
-  const inspectionStatuses = Array.from(new Set(data.map(r => r.InspectionStatus).filter(Boolean))).sort();
-  const partStatuses = Array.from(new Set(data.map(r => r.PartStatus).filter(Boolean))).sort();
-  const nextProcesses = Array.from(new Set(data.map(r => r.NextProcess).filter(Boolean))).sort();
-
-  populateSelect(elements.filterModel, models);
-  populateSelect(elements.filterInspectionStatus, inspectionStatuses);
-  populateSelect(elements.filterPartStatus, partStatuses);
-  populateSelect(elements.filterNextProcess, nextProcesses);
+  const unique = key => [...new Set(data.map(r => r[key]).filter(Boolean))].sort();
+  populateSelect(elements.filterModel, unique('Material'));
+  populateSelect(elements.filterInspectionStatus, unique('InspectionStatus'));
+  populateSelect(elements.filterPartStatus, unique('PartStatus'));
+  populateSelect(elements.filterNextProcess, unique('NextProcess'));
 }
 
 function populateSelect(select, options) {
-  const selectedValue = select.value;
-  select.innerHTML = '<option value="">All</option>' + options.map(value => `<option value="${value}">${value}</option>`).join('');
-  if (selectedValue) {
-    select.value = selectedValue;
-  }
+  const val = select.value;
+  select.innerHTML = '<option value="">All</option>' + options.map(v => `<option value="${v}">${v}</option>`).join('');
+  if (val) select.value = val;
 }
 
 function renderTable(data) {
-  const headers = ['DateIN', 'RouteCard', 'PartName', 'PartID', 'Model', 'Quantity', 'InspectionDate', 'InspectionStatus', 'QuantityOK', 'QuantityNG', 'NCR', 'NCRStatus', 'Remark'];
-  elements.tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h.replace(/([A-Z])/g, ' $1').trim()}</th>`).join('')}</tr>`;
-  elements.tableBody.innerHTML = data.map(record => `<tr>${headers.map(key => `<td>${record[key] !== undefined ? record[key] : ''}</td>`).join('')}</tr>`).join('');
+  elements.tableHead.innerHTML = `<tr>${tableHeaders.map(h => `<th>${h.label}</th>`).join('')}</tr>`;
+  elements.tableBody.innerHTML = data.map(r =>
+    `<tr>${tableHeaders.map(h => `<td>${r[h.key] !== undefined ? r[h.key] : ''}</td>`).join('')}</tr>`
+  ).join('');
 }
 
 function renderCharts(data) {
-  const statusCounts = data.reduce((acc, record) => {
-    const key = record.InspectionStatus || 'Unknown';
+  const statusCounts = data.reduce((acc, r) => {
+    const key = r.InspectionStatus || 'Unknown';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
 
-  const modelCounts = data.reduce((acc, record) => {
-    const key = record.Model || 'Unknown';
-    acc[key] = (acc[key] || 0) + (record.Quantity || 1);
+  const materialCounts = data.reduce((acc, r) => {
+    const key = r.Material || 'Unknown';
+    acc[key] = (acc[key] || 0) + (r.QtyPO || 1);
     return acc;
   }, {});
 
   const statusLabels = Object.keys(statusCounts);
-  const statusValues = statusLabels.map(key => statusCounts[key]);
-  const topModels = Object.entries(modelCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const modelLabels = topModels.map(item => item[0]);
-  const modelValues = topModels.map(item => item[1]);
+  const topMaterials = Object.entries(materialCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   if (charts.status) charts.status.destroy();
   charts.status = new Chart(elements.statusChart, {
     type: 'doughnut',
     data: {
       labels: statusLabels,
-      datasets: [{ data: statusValues, backgroundColor: ['#2f855a', '#dd6b20', '#3182ce', '#d53f8c', '#718096'] }],
+      datasets: [{ data: statusLabels.map(k => statusCounts[k]), backgroundColor: ['#2f855a','#dd6b20','#3182ce','#d53f8c','#718096'] }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
   });
 
   if (charts.model) charts.model.destroy();
   charts.model = new Chart(elements.modelChart, {
     type: 'bar',
     data: {
-      labels: modelLabels,
-      datasets: [{ label: 'Quantity', data: modelValues, backgroundColor: '#3182ce' }],
+      labels: topMaterials.map(m => m[0]),
+      datasets: [{ label: 'Qty PO', data: topMaterials.map(m => m[1]), backgroundColor: '#3182ce' }]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxRotation: 45, minRotation: 0 } }, y: { beginAtZero: true } } },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxRotation: 45 } }, y: { beginAtZero: true } } }
   });
 }
 
 function applyFilters() {
-  const model = elements.filterModel.value;
-  const inspectionStatus = elements.filterInspectionStatus.value;
+  const material = elements.filterModel.value;
+  const inspStatus = elements.filterInspectionStatus.value;
   const partStatus = elements.filterPartStatus.value;
   const nextProcess = elements.filterNextProcess.value;
   const startDate = elements.filterStartDate.value;
   const endDate = elements.filterEndDate.value;
 
-  currentData = rawData.filter(record => {
-    if (model && record.Model !== model) return false;
-    if (inspectionStatus && record.InspectionStatus !== inspectionStatus) return false;
-    if (partStatus && record.PartStatus !== partStatus) return false;
-    if (nextProcess && record.NextProcess !== nextProcess) return false;
-    if (startDate && record.InspectionDate && record.InspectionDate < startDate) return false;
-    if (endDate && record.InspectionDate && record.InspectionDate > endDate) return false;
+  currentData = rawData.filter(r => {
+    if (material && r.Material !== material) return false;
+    if (inspStatus && r.InspectionStatus !== inspStatus) return false;
+    if (partStatus && r.PartStatus !== partStatus) return false;
+    if (nextProcess && r.NextProcess !== nextProcess) return false;
+    if (startDate && r.InspectionDate && r.InspectionDate < startDate) return false;
+    if (endDate && r.InspectionDate && r.InspectionDate > endDate) return false;
     return true;
   });
   refreshUI();
