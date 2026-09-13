@@ -5,28 +5,47 @@ import { findRouteCard } from '../api.js';
 export default function RouteCard({ showToast }) {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
+  const [revisions, setRevisions] = useState(null);
   const [searching, setSearching] = useState(false);
 
-  async function handleFind(e) {
-    e.preventDefault();
-    if (!query.trim()) return;
+  async function runSearch(wo, rev) {
     setSearching(true);
     try {
-      const res = await findRouteCard(query.trim());
-      setResult(res);
-      if (!res.found) showToast('Route Card tidak dijumpai.', 'error');
+      const res = await findRouteCard(wo, rev);
+      if (res.multiple) {
+        setRevisions(res.revisions);
+        setResult(null);
+      } else {
+        setRevisions(null);
+        setResult(res);
+        if (!res.found) showToast('Route Card tidak dijumpai.', 'error');
+      }
     } catch (err) {
       showToast('Gagal cari route card.', 'error');
       console.error(err);
       setResult(null);
+      setRevisions(null);
     } finally {
       setSearching(false);
     }
   }
 
+  function handleFind(e) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setResult(null);
+    setRevisions(null);
+    runSearch(query.trim());
+  }
+
+  function handlePickRevision(rev) {
+    runSearch(query.trim(), rev);
+  }
+
   function handleReset() {
     setQuery('');
     setResult(null);
+    setRevisions(null);
   }
 
   return (
@@ -57,6 +76,22 @@ export default function RouteCard({ showToast }) {
           </div>
         </div>
       </form>
+
+      {revisions && (
+        <div className="glass-card">
+          <h2 className="card-title">This route card have multiple revision</h2>
+          <p style={{ marginBottom: 14, color: 'var(--text-muted)', fontSize: 13.5 }}>
+            Sila pilih revision yang anda perlukan:
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {revisions.map(rev => (
+              <button key={rev} type="button" className="btn-ghost" onClick={() => handlePickRevision(rev)}>
+                Rev {rev}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className="glass-card">

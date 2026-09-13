@@ -35,7 +35,7 @@ function doGet(e) {
   let result;
   try {
     if (action === 'save') result = saveRecord(e.parameter);
-    else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo);
+    else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo, e.parameter.rev);
     else result = listRecords();
   } catch (err) {
     result = { status: 'error', message: err.message };
@@ -62,18 +62,40 @@ function getImportSheet() {
 // Route Card No.). Read-only — never writes to this tab, since its
 // content is owned by a live IMPORTRANGE formula (see Code.gs header
 // comment).
-function findRouteCard(wo) {
+//
+// A route card can have several revisions (rows sharing the same
+// WO# with different REV values). When more than one row matches
+// and no `rev` was given, this returns the list of revisions instead
+// of a row, so the caller can ask the user to pick one and call
+// again with `rev` set.
+function findRouteCard(wo, rev) {
   wo = (wo || '').toString().trim();
   if (!wo) return { status: 'error', message: 'Route Card No. diperlukan' };
+  rev = (rev || '').toString().trim();
 
   const sheet = getImportSheet();
   const values = sheet.getDataRange().getValues();
   const headers = values.shift();
   const woIndex = headers.indexOf(IMPORT_WO_COLUMN);
+  const revIndex = headers.indexOf('REV');
   if (woIndex === -1) return { status: 'error', message: 'Column "' + IMPORT_WO_COLUMN + '" tidak dijumpai' };
 
-  const row = values.find(r => r[woIndex].toString().trim().toLowerCase() === wo.toLowerCase());
-  if (!row) return { status: 'ok', found: false };
+  const matches = values.filter(r => r[woIndex].toString().trim().toLowerCase() === wo.toLowerCase());
+  if (matches.length === 0) return { status: 'ok', found: false };
+
+  let row;
+  if (matches.length > 1 && revIndex !== -1) {
+    if (!rev) {
+      const revisions = matches
+        .map(r => r[revIndex].toString().trim())
+        .filter(Boolean);
+      return { status: 'ok', found: true, multiple: true, revisions };
+    }
+    row = matches.find(r => r[revIndex].toString().trim().toLowerCase() === rev.toLowerCase());
+    if (!row) return { status: 'ok', found: false };
+  } else {
+    row = matches[0];
+  }
 
   const data = {};
   headers.forEach((h, i) => { if (IMPORT_DISPLAY_COLUMNS.includes(h)) data[h] = row[i]; });
