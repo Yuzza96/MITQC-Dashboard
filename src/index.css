@@ -288,6 +288,31 @@ tbody tr:hover { background: rgba(0,122,255,0.04); }
 .toast.error svg { color: var(--danger); }
 
 /* ── ROUTE CARD DETAILS ── */
+.detail-hero {
+  background: linear-gradient(135deg, #0a84ff 0%, #0057c7 100%);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0,122,255,0.28);
+}
+.detail-hero-label {
+  font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  opacity: 0.75; margin-bottom: 6px;
+}
+.detail-hero-title { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 16px; }
+.detail-hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+.detail-hero-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.18);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12.5px; font-weight: 700;
+}
+.detail-hero-badge svg { width: 13px; height: 13px; opacity: 0.85; }
+.detail-hero-badge .b-label { opacity: 0.7; font-weight: 600; }
+
 .detail-group { margin-bottom: 22px; }
 .detail-group:last-child { margin-bottom: 0; }
 .detail-group-title {
