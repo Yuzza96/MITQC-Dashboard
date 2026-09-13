@@ -225,16 +225,16 @@ function renderCharts() {
 
   // Status chart
   const statusCount = data.reduce((a, r) => { a[r.status || 'Unknown'] = (a[r.status || 'Unknown'] || 0) + 1; return a; }, {});
-  const statusColors = { 'Pass': '#4ade80', 'Fail': '#f87171', 'Conditional Pass': '#60a5fa', 'Pending': '#fbbf24', 'Unknown': '#94a3b8' };
+  const statusColors = { 'Pass': '#34C759', 'Fail': '#FF3B30', 'Conditional Pass': '#007AFF', 'Pending': '#FF9500', 'Unknown': '#a1a1a6' };
 
   if (charts.status) charts.status.destroy();
   charts.status = new Chart(document.getElementById('chart-status'), {
     type: 'doughnut',
     data: {
       labels: Object.keys(statusCount),
-      datasets: [{ data: Object.values(statusCount), backgroundColor: Object.keys(statusCount).map(k => statusColors[k] || '#94a3b8'), borderWidth: 0 }]
+      datasets: [{ data: Object.values(statusCount), backgroundColor: Object.keys(statusCount).map(k => statusColors[k] || '#a1a1a6'), borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#eef2ff', font: { size: 12 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#1d1d1f', font: { size: 12 } } } } }
   });
 
   // Material chart
@@ -246,14 +246,14 @@ function renderCharts() {
     type: 'bar',
     data: {
       labels: top.map(m => m[0]),
-      datasets: [{ label: 'Rekod', data: top.map(m => m[1]), backgroundColor: '#4f8ef7', borderRadius: 6 }]
+      datasets: [{ label: 'Rekod', data: top.map(m => m[1]), backgroundColor: '#007AFF', borderRadius: 6 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#94a3b8', maxRotation: 35 }, grid: { display: false } },
-        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+        x: { ticks: { color: '#6e6e73', maxRotation: 35 }, grid: { display: false } },
+        y: { ticks: { color: '#6e6e73' }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
       }
     }
   });
