@@ -194,7 +194,7 @@ export default function RouteCard({ showToast }) {
       <div className="glass-card">
         <h2 className="card-title"><Clock /> Pending Inspection</h2>
         <div className="table-scroll">
-          <table>
+          <table className="pending-table">
             <thead>
               <tr>
                 <th>WO#</th><th>Rev</th><th>Part Description</th><th>Drawing Number</th>
@@ -208,8 +208,8 @@ export default function RouteCard({ showToast }) {
               )}
               {(pending || []).map((r, i) => (
                 <tr key={i}>
-                  <td>{r['WO#'] || '—'}</td>
-                  <td>{r['REV'] || '—'}</td>
+                  <td className="wo-cell">{r['WO#'] || '—'}</td>
+                  <td>{r['REV'] ? <span className="rev-badge">{r['REV']}</span> : <span className="d-muted">—</span>}</td>
                   <td>{r['PART DESCRIPTION'] || '—'}</td>
                   <td>{r['DRAWING NUMBER'] || '—'}</td>
                 </tr>

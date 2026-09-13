@@ -259,6 +259,18 @@ tbody td {
 }
 tbody tr:hover { background: rgba(0,122,255,0.04); }
 
+.pending-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
+.pending-table tbody tr:hover { background: rgba(0,122,255,0.06); }
+.pending-table .wo-cell { font-weight: 700; }
+.pending-table .d-muted { color: var(--text-muted); }
+.rev-badge {
+  display: inline-block;
+  padding: 2px 11px;
+  border-radius: 12px;
+  font-size: 12px; font-weight: 700;
+  background: var(--accent-soft); color: var(--accent);
+}
+
 .badge {
   display: inline-block; padding: 3px 10px;
   border-radius: 20px; font-size: 11.5px; font-weight: 700;
