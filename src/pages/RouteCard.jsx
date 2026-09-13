@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes, Clock } from 'lucide-react';
+import { Search, Inbox, ClipboardList, FileText, Tag, Briefcase, Layers, Boxes, Clock, RotateCw } from 'lucide-react';
 import { findRouteCard, registerRouteCard, listPendingInspections } from '../api.js';
 
 // WO# and Drawing Number are shown in the hero above instead of a group.
@@ -18,15 +18,18 @@ export default function RouteCard({ showToast }) {
   const [searching, setSearching] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [pending, setPending] = useState(null);
+  const [pendingLoading, setPendingLoading] = useState(false);
 
   function refreshPending() {
+    setPendingLoading(true);
     listPendingInspections()
       .then(setPending)
       .catch(err => {
         showToast('Failed to load pending inspections.', 'error');
         console.error(err);
-        setPending([]);
-      });
+        setPending(prev => prev ?? []); // keep last good list on a transient failure
+      })
+      .finally(() => setPendingLoading(false));
   }
 
   useEffect(() => { refreshPending(); }, []);
@@ -192,7 +195,18 @@ export default function RouteCard({ showToast }) {
       )}
 
       <div className="glass-card">
-        <h2 className="card-title"><Clock /> Pending Inspection</h2>
+        <div className="table-header-row">
+          <h2 className="card-title" style={{ margin: 0 }}><Clock /> Pending Inspection</h2>
+          <button
+            type="button"
+            className="btn-ghost small"
+            onClick={refreshPending}
+            disabled={pendingLoading}
+            title="Refresh"
+          >
+            <RotateCw className={pendingLoading ? 'spin' : ''} /> Refresh
+          </button>
+        </div>
         <div className="table-scroll">
           <table className="pending-table">
             <thead>
@@ -201,6 +215,11 @@ export default function RouteCard({ showToast }) {
               </tr>
             </thead>
             <tbody>
+              {pending === null && (
+                <tr><td colSpan={4}>
+                  <div className="empty-state"><Inbox />Loading pending inspections...</div>
+                </td></tr>
+              )}
               {pending && pending.length === 0 && (
                 <tr><td colSpan={4}>
                   <div className="empty-state"><Inbox />No pending route cards</div>
