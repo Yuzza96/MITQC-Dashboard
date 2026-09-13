@@ -41,31 +41,36 @@ function badge(status) {
   return `<span class="badge ${cls}">${status || '—'}</span>`;
 }
 
-// ── FETCH DATA (JSONP — bypass CORS) ─
-function fetchRecords() {
+// ── JSONP (bypass CORS for both GET & "POST") ─
+function jsonp(params) {
   return new Promise((resolve, reject) => {
-    const callbackName = 'mitqc_cb_' + Date.now();
+    const callbackName = 'mitqc_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
     const script = document.createElement('script');
+    const query  = new URLSearchParams({ ...params, callback: callbackName }).toString();
 
     window[callbackName] = function(data) {
       delete window[callbackName];
-      document.body.removeChild(script);
-      if (data && data.status === 'ok') {
-        allRecords = data.data || [];
-        resolve(allRecords);
-      } else {
-        reject(new Error(data?.message || 'Unknown error'));
-      }
+      script.remove();
+      resolve(data);
     };
 
-    script.src = API_URL + '?callback=' + callbackName;
+    script.src = API_URL + '?' + query;
     script.onerror = () => {
       delete window[callbackName];
-      document.body.removeChild(script);
+      script.remove();
       reject(new Error('Script load failed'));
     };
     document.body.appendChild(script);
   });
+}
+
+async function fetchRecords() {
+  const data = await jsonp({ action: 'list' });
+  if (data && data.status === 'ok') {
+    allRecords = data.data || [];
+    return allRecords;
+  }
+  throw new Error(data?.message || 'Unknown error');
 }
 
 // ── HOME ─────────────────────────────
@@ -160,16 +165,14 @@ document.getElementById('qc-form').addEventListener('submit', async function(e) 
   };
 
   try {
-    await fetch(API_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify(record)
-    });
+    const data = await jsonp({ action: 'save', ...record });
+    if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
     showToast('Rekod berjaya disimpan!');
     this.reset();
     document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   } catch (err) {
     showToast('Gagal simpan rekod.', 'error');
+    console.error(err);
   } finally {
     btn.disabled = false;
     btn.textContent = '💾 Simpan Rekod';
