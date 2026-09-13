@@ -17,13 +17,17 @@
 // ═══════════════════════════════════════
 
 const SHEET_NAME = 'Inspection record';
+const IMPORT_SHEET_NAME = 'route card import range';
+const IMPORT_WO_COLUMN = 'WO#';
 
 function doGet(e) {
   const action = (e.parameter.action || 'list');
 
   let result;
   try {
-    result = (action === 'save') ? saveRecord(e.parameter) : listRecords();
+    if (action === 'save') result = saveRecord(e.parameter);
+    else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo);
+    else result = listRecords();
   } catch (err) {
     result = { status: 'error', message: err.message };
   }
@@ -37,6 +41,34 @@ function getSheet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) throw new Error('Sheet "' + SHEET_NAME + '" not found');
   return sheet;
+}
+
+function getImportSheet() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(IMPORT_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet "' + IMPORT_SHEET_NAME + '" not found');
+  return sheet;
+}
+
+// Looks up a row in the IMPORTRANGE-fed tab by its WO# (used as the
+// Route Card No.). Read-only — never writes to this tab, since its
+// content is owned by a live IMPORTRANGE formula (see Code.gs header
+// comment).
+function findRouteCard(wo) {
+  wo = (wo || '').toString().trim();
+  if (!wo) return { status: 'error', message: 'Route Card No. diperlukan' };
+
+  const sheet = getImportSheet();
+  const values = sheet.getDataRange().getValues();
+  const headers = values.shift();
+  const woIndex = headers.indexOf(IMPORT_WO_COLUMN);
+  if (woIndex === -1) return { status: 'error', message: 'Column "' + IMPORT_WO_COLUMN + '" tidak dijumpai' };
+
+  const row = values.find(r => r[woIndex].toString().trim().toLowerCase() === wo.toLowerCase());
+  if (!row) return { status: 'ok', found: false };
+
+  const data = {};
+  headers.forEach((h, i) => { if (h) data[h] = row[i]; });
+  return { status: 'ok', found: true, data };
 }
 
 function listRecords() {

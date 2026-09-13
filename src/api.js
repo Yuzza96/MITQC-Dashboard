@@ -18,3 +18,10 @@ export async function saveRecord(record) {
   if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
   return data;
 }
+
+export async function findRouteCard(wo) {
+  const res = await fetch(`${API_URL}?${new URLSearchParams({ action: 'findRouteCard', wo })}`);
+  const data = await res.json();
+  if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
+  return data; // { found: boolean, data?: {...} }
+}

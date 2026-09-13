@@ -1,93 +1,86 @@
 import { useState } from 'react';
-import { FileText, Save } from 'lucide-react';
-import { saveRecord } from '../api.js';
-
-const today = () => new Date().toISOString().split('T')[0];
-
-const emptyRecord = () => ({
-  date: today(), routecard: '', po: '', drawing: '', part: '', qtypo: '',
-  material: '', nextprocess: '', inspector: '',
-});
+import { Search, Inbox } from 'lucide-react';
+import { findRouteCard } from '../api.js';
 
 export default function RouteCard({ showToast }) {
-  const [record, setRecord] = useState(emptyRecord);
-  const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState(null);
+  const [searching, setSearching] = useState(false);
 
-  const set = (field) => (e) => setRecord(r => ({ ...r, [field]: e.target.value }));
-  const reset = () => setRecord(emptyRecord());
-
-  async function handleSubmit(e) {
+  async function handleFind(e) {
     e.preventDefault();
-    setSaving(true);
+    if (!query.trim()) return;
+    setSearching(true);
     try {
-      await saveRecord(record);
-      showToast('Rekod berjaya disimpan!');
-      reset();
+      const res = await findRouteCard(query.trim());
+      setResult(res);
+      if (!res.found) showToast('Route Card tidak dijumpai.', 'error');
     } catch (err) {
-      showToast('Gagal simpan rekod.', 'error');
+      showToast('Gagal cari route card.', 'error');
       console.error(err);
+      setResult(null);
     } finally {
-      setSaving(false);
+      setSearching(false);
     }
+  }
+
+  function handleReset() {
+    setQuery('');
+    setResult(null);
   }
 
   return (
     <div className="panel">
       <div className="page-header">
         <h1>Route Card</h1>
-        <p>Tambah maklumat route card</p>
+        <p>Cari maklumat route card sedia ada</p>
       </div>
 
-      <form autoComplete="off" onSubmit={handleSubmit}>
-        <div className="glass-card">
-          <h2 className="card-title"><FileText /> Route Card</h2>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Inspection Date <span className="req">*</span></label>
-              <input type="date" required value={record.date} onChange={set('date')} />
-            </div>
-            <div className="form-group">
-              <label>Route Card No. <span className="req">*</span></label>
-              <input type="text" placeholder="cth: RC-2026-001" required value={record.routecard} onChange={set('routecard')} />
-            </div>
-            <div className="form-group">
-              <label>PO#</label>
-              <input type="text" placeholder="Purchase Order No." value={record.po} onChange={set('po')} />
-            </div>
-            <div className="form-group">
-              <label>Drawing No.</label>
-              <input type="text" placeholder="Drawing Number" value={record.drawing} onChange={set('drawing')} />
-            </div>
-            <div className="form-group full">
-              <label>Part Description <span className="req">*</span></label>
-              <input type="text" placeholder="Nama/penerangan part" required value={record.part} onChange={set('part')} />
-            </div>
-            <div className="form-group">
-              <label>Qty PO</label>
-              <input type="number" placeholder="0" min="0" value={record.qtypo} onChange={set('qtypo')} />
-            </div>
-            <div className="form-group">
-              <label>Material</label>
-              <input type="text" placeholder="cth: AISI 4140" value={record.material} onChange={set('material')} />
-            </div>
-            <div className="form-group">
-              <label>Next Process</label>
-              <input type="text" placeholder="Proses seterusnya" value={record.nextprocess} onChange={set('nextprocess')} />
-            </div>
-            <div className="form-group">
-              <label>Inspected By</label>
-              <input type="text" placeholder="Nama inspektor" value={record.inspector} onChange={set('inspector')} />
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <button type="button" className="btn-ghost" onClick={reset}>Reset</button>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              <Save /> {saving ? 'Menyimpan...' : 'Simpan Rekod'}
+      <form className="glass-card" onSubmit={handleFind}>
+        <h2 className="card-title"><Search /> Register Route Card</h2>
+        <div className="form-group">
+          <label>Route Card No. <span className="req">*</span></label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input
+              type="text"
+              placeholder="Enter Route Card number"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button type="submit" className="btn-primary" disabled={searching} style={{ flexShrink: 0 }}>
+              {searching ? 'Mencari...' : 'Find'}
+            </button>
+            <button type="button" className="btn-ghost" onClick={handleReset} style={{ flexShrink: 0 }}>
+              Reset
             </button>
           </div>
         </div>
       </form>
+
+      {result && (
+        <div className="glass-card">
+          <h2 className="card-title">Details</h2>
+          {!result.found ? (
+            <div className="empty-state"><Inbox />Route Card tidak dijumpai.</div>
+          ) : (
+            <div className="table-scroll">
+              <table>
+                <tbody>
+                  {Object.entries(result.data)
+                    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+                    .map(([field, value]) => (
+                      <tr key={field}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-muted)', width: '35%' }}>{field}</td>
+                        <td>{value.toString()}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
