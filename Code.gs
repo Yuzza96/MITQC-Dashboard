@@ -20,6 +20,15 @@ const SHEET_NAME = 'Inspection record';
 const IMPORT_SHEET_NAME = 'route card import range';
 const IMPORT_WO_COLUMN = 'WO#';
 
+// Only these columns are returned/shown for a matched route card -
+// the import tab has dozens of per-operation (OP 10..OP 150) tracking
+// columns that aren't relevant to this lookup.
+const IMPORT_DISPLAY_COLUMNS = [
+  'PO#', 'RFM / IHM / RGAF', 'PURPOSE / PROJECT', 'DRAWING NUMBER',
+  'PART DESCRIPTION', 'QTY\nPO', 'MATERIAL', 'COATING', 'COATING2',
+  'WO#', 'REV', 'QTY',
+];
+
 function doGet(e) {
   const action = (e.parameter.action || 'list');
 
@@ -67,7 +76,7 @@ function findRouteCard(wo) {
   if (!row) return { status: 'ok', found: false };
 
   const data = {};
-  headers.forEach((h, i) => { if (h) data[h] = row[i]; });
+  headers.forEach((h, i) => { if (IMPORT_DISPLAY_COLUMNS.includes(h)) data[h] = row[i]; });
   return { status: 'ok', found: true, data };
 }
 
