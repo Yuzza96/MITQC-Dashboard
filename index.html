@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QC Inspection Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>QC Inspection Dashboard</h1>
+      <p>Load the master `Database` sheet from Google Sheets and explore inspection metrics.</p>
+    </div>
+    <button id="load-data">Load Google Sheet</button>
+  </header>
+
+  <main>
+    <section class="info-panel">
+      <div class="info-item">
+        <h2>Sheet</h2>
+        <p id="sheet-name">Not loaded</p>
+      </div>
+      <div class="info-item">
+        <h2>Records</h2>
+        <p id="record-count">0</p>
+      </div>
+      <div class="info-item">
+        <h2>Source</h2>
+        <p><code id="sheet-url"></code></p>
+      </div>
+    </section>
+
+    <section class="summary-cards" id="summary-cards"></section>
+
+    <section class="filters-card">
+      <h2>Filters</h2>
+      <div class="filter-row">
+        <label>
+          Model
+          <select id="filter-model"><option value="">All</option></select>
+        </label>
+        <label>
+          Inspection Status
+          <select id="filter-inspection-status"><option value="">All</option></select>
+        </label>
+        <label>
+          Part Status
+          <select id="filter-part-status"><option value="">All</option></select>
+        </label>
+        <label>
+          Next Process
+          <select id="filter-next-process"><option value="">All</option></select>
+        </label>
+      </div>
+      <div class="filter-row">
+        <label>
+          Range Start
+          <input id="filter-start-date" type="date" />
+        </label>
+        <label>
+          Range End
+          <input id="filter-end-date" type="date" />
+        </label>
+        <button id="clear-filters">Clear Filters</button>
+      </div>
+    </section>
+
+    <section class="charts-grid">
+      <article class="chart-card">
+        <h3>Inspection Status</h3>
+        <canvas id="status-chart"></canvas>
+      </article>
+      <article class="chart-card">
+        <h3>Top 10 Models by Quantity</h3>
+        <canvas id="model-chart"></canvas>
+      </article>
+    </section>
+
+    <section class="table-card">
+      <h2>Inspection Records</h2>
+      <div class="table-scroll">
+        <table id="records-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="notice">
+    <strong>Note:</strong> Update <code>dashboard/config.js</code> with your Google Sheet ID and publish the sheet to the web so the browser can fetch the data.
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
