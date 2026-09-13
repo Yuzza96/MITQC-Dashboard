@@ -82,37 +82,73 @@ function revLabel(rawRev, position) {
 // ask the user to pick one and call again with that `index` - matched
 // by row position within this same filtered list, not by REV text,
 // since REV alone doesn't uniquely identify a row (see revLabel above).
+// Rebuilding the WO# index means reading one 3000+-row column, which
+// dominates request time even after trimming the old full-sheet scan.
+// Cache it for a few minutes so repeated searches skip that read
+// entirely - the import tab doesn't change often enough for a short
+// staleness window to matter here.
+const IMPORT_INDEX_CACHE_KEY = 'importWoIndex_v1';
+const IMPORT_INDEX_CACHE_TTL_SECONDS = 300;
+
+function getImportIndex() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(IMPORT_INDEX_CACHE_KEY);
+  if (cached) return JSON.parse(cached);
+
+  const sheet = getImportSheet();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const woCol = headers.indexOf(IMPORT_WO_COLUMN) + 1; // 1-based
+  if (woCol === 0) throw new Error('Column "' + IMPORT_WO_COLUMN + '" tidak dijumpai');
+  const woValues = sheet.getRange(2, woCol, lastRow - 1, 1).getValues().map(r => (r[0] || '').toString());
+
+  const index = { headers, lastCol, woValues };
+  cache.put(IMPORT_INDEX_CACHE_KEY, JSON.stringify(index), IMPORT_INDEX_CACHE_TTL_SECONDS);
+  return index;
+}
+
 function findRouteCard(wo, index) {
   wo = (wo || '').toString().trim();
   if (!wo) return { status: 'error', message: 'Route Card No. diperlukan' };
 
-  const sheet = getImportSheet();
-  const values = sheet.getDataRange().getValues();
-  const headers = values.shift();
-  const woIndex = headers.indexOf(IMPORT_WO_COLUMN);
-  const revIndex = headers.indexOf('REV');
-  if (woIndex === -1) return { status: 'error', message: 'Column "' + IMPORT_WO_COLUMN + '" tidak dijumpai' };
+  const { headers, lastCol, woValues } = getImportIndex();
+  const revCol = headers.indexOf('REV') + 1;
 
-  const matches = values.filter(r => r[woIndex].toString().trim().toLowerCase() === wo.toLowerCase());
-  if (matches.length === 0) return { status: 'ok', found: false };
-
-  let row;
-  if (matches.length > 1) {
-    if (index === undefined || index === null || index === '') {
-      const revisions = matches.map((r, i) => ({
-        index: i,
-        label: revLabel(revIndex === -1 ? '' : r[revIndex], i),
-      }));
-      return { status: 'ok', found: true, multiple: true, revisions };
+  const wanted = wo.toLowerCase();
+  const matchedRows = [];
+  for (let i = 0; i < woValues.length; i++) {
+    if (woValues[i].trim().toLowerCase() === wanted) {
+      matchedRows.push(i + 2); // 1-based sheet row number
     }
-    row = matches[Number(index)];
-    if (!row) return { status: 'ok', found: false };
-  } else {
-    row = matches[0];
+  }
+  if (matchedRows.length === 0) return { status: 'ok', found: false };
+
+  const sheet = getImportSheet();
+
+  if (matchedRows.length > 1 && (index === undefined || index === null || index === '')) {
+    // Only need REV for the few matched rows - one bounded range read,
+    // not a full-sheet scan.
+    let revValues = [];
+    if (revCol > 0) {
+      const minRow = Math.min(...matchedRows);
+      const maxRow = Math.max(...matchedRows);
+      const revBlock = sheet.getRange(minRow, revCol, maxRow - minRow + 1, 1).getValues();
+      revValues = matchedRows.map(r => revBlock[r - minRow][0]);
+    }
+    const revisions = matchedRows.map((_, i) => ({
+      index: i,
+      label: revLabel(revValues[i], i),
+    }));
+    return { status: 'ok', found: true, multiple: true, revisions };
   }
 
+  const rowNumber = matchedRows.length > 1 ? matchedRows[Number(index)] : matchedRows[0];
+  if (!rowNumber) return { status: 'ok', found: false };
+
+  const rowValues = sheet.getRange(rowNumber, 1, 1, lastCol).getValues()[0];
   const data = {};
-  headers.forEach((h, i) => { if (IMPORT_DISPLAY_COLUMNS.includes(h)) data[h] = row[i]; });
+  headers.forEach((h, i) => { if (IMPORT_DISPLAY_COLUMNS.includes(h)) data[h] = rowValues[i]; });
   return { status: 'ok', found: true, data };
 }
 
