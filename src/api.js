@@ -19,11 +19,11 @@ export async function saveRecord(record) {
   return data;
 }
 
-export async function findRouteCard(wo, rev) {
+export async function findRouteCard(wo, index) {
   const params = { action: 'findRouteCard', wo };
-  if (rev) params.rev = rev;
+  if (index !== undefined && index !== null) params.index = index;
   const res = await fetch(`${API_URL}?${new URLSearchParams(params)}`);
   const data = await res.json();
   if (!data || data.status !== 'ok') throw new Error(data?.message || 'Unknown error');
-  return data; // { found: boolean, multiple?: boolean, revisions?: string[], data?: {...} }
+  return data; // { found: boolean, multiple?: boolean, revisions?: {index,label}[], data?: {...} }
 }

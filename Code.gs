@@ -35,7 +35,7 @@ function doGet(e) {
   let result;
   try {
     if (action === 'save') result = saveRecord(e.parameter);
-    else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo, e.parameter.rev);
+    else if (action === 'findRouteCard') result = findRouteCard(e.parameter.wo, e.parameter.index);
     else result = listRecords();
   } catch (err) {
     result = { status: 'error', message: err.message };
@@ -58,20 +58,33 @@ function getImportSheet() {
   return sheet;
 }
 
-// Looks up a row in the IMPORTRANGE-fed tab by its WO# (used as the
-// Route Card No.). Read-only — never writes to this tab, since its
-// content is owned by a live IMPORTRANGE formula (see Code.gs header
-// comment).
+// A blank REV cell doesn't mean "no revision" - the import tab has
+// real rows with an empty REV alongside rows with a lettered one for
+// the same WO#, and they're genuinely different rows (different QTY,
+// different OP tracking columns filled in). Keep a real REV value
+// when the cell has one; fill blank ones with the next letter in
+// A, B, C, ... by row position, so every row still gets a distinct,
+// stable label instead of disappearing.
+const REV_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function revLabel(rawRev, position) {
+  const rev = (rawRev || '').toString().trim();
+  if (rev) return rev;
+  return REV_LETTERS[position] || String(position + 1);
+}
+
+// Looks up rows in the IMPORTRANGE-fed tab by WO# (used as the Route
+// Card No.). Read-only — never writes to this tab, since its content
+// is owned by a live IMPORTRANGE formula (see Code.gs header comment).
 //
 // A route card can have several revisions (rows sharing the same
-// WO# with different REV values). When more than one row matches
-// and no `rev` was given, this returns the list of revisions instead
-// of a row, so the caller can ask the user to pick one and call
-// again with `rev` set.
-function findRouteCard(wo, rev) {
+// WO#). When more than one row matches and no `index` was given,
+// this returns a labeled list instead of a row, so the caller can
+// ask the user to pick one and call again with that `index` - matched
+// by row position within this same filtered list, not by REV text,
+// since REV alone doesn't uniquely identify a row (see revLabel above).
+function findRouteCard(wo, index) {
   wo = (wo || '').toString().trim();
   if (!wo) return { status: 'error', message: 'Route Card No. diperlukan' };
-  rev = (rev || '').toString().trim();
 
   const sheet = getImportSheet();
   const values = sheet.getDataRange().getValues();
@@ -84,14 +97,15 @@ function findRouteCard(wo, rev) {
   if (matches.length === 0) return { status: 'ok', found: false };
 
   let row;
-  if (matches.length > 1 && revIndex !== -1) {
-    if (!rev) {
-      const revisions = matches
-        .map(r => r[revIndex].toString().trim())
-        .filter(Boolean);
+  if (matches.length > 1) {
+    if (index === undefined || index === null || index === '') {
+      const revisions = matches.map((r, i) => ({
+        index: i,
+        label: revLabel(revIndex === -1 ? '' : r[revIndex], i),
+      }));
       return { status: 'ok', found: true, multiple: true, revisions };
     }
-    row = matches.find(r => r[revIndex].toString().trim().toLowerCase() === rev.toLowerCase());
+    row = matches[Number(index)];
     if (!row) return { status: 'ok', found: false };
   } else {
     row = matches[0];

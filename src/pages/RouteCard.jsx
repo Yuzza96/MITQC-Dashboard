@@ -8,10 +8,10 @@ export default function RouteCard({ showToast }) {
   const [revisions, setRevisions] = useState(null);
   const [searching, setSearching] = useState(false);
 
-  async function runSearch(wo, rev) {
+  async function runSearch(wo, index) {
     setSearching(true);
     try {
-      const res = await findRouteCard(wo, rev);
+      const res = await findRouteCard(wo, index);
       if (res.multiple) {
         setRevisions(res.revisions);
         setResult(null);
@@ -38,8 +38,8 @@ export default function RouteCard({ showToast }) {
     runSearch(query.trim());
   }
 
-  function handlePickRevision(rev) {
-    runSearch(query.trim(), rev);
+  function handlePickRevision(index) {
+    runSearch(query.trim(), index);
   }
 
   function handleReset() {
@@ -84,9 +84,9 @@ export default function RouteCard({ showToast }) {
             Sila pilih revision yang anda perlukan:
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {revisions.map(rev => (
-              <button key={rev} type="button" className="btn-ghost" onClick={() => handlePickRevision(rev)}>
-                Rev {rev}
+            {revisions.map(({ index, label }) => (
+              <button key={index} type="button" className="btn-ghost" onClick={() => handlePickRevision(index)}>
+                Rev {label}
               </button>
             ))}
           </div>
