@@ -166,7 +166,7 @@ export default function RouteCard({ showToast }) {
             </thead>
             <tbody>
               <tr><td colSpan={4}>
-                <div className="empty-state"><Inbox />Tiada route card belum inspection.</div>
+                <div className="empty-state"><Inbox />No pending route cards</div>
               </td></tr>
             </tbody>
           </table>
