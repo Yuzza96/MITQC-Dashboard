@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════
 //  MITQC Dashboard — Apps Script backend
 //  Paste this into the Apps Script project
-//  bound to the "Inspection Records" sheet,
+//  bound to the "route card import range" sheet,
 //  then redeploy the web app (New deployment
 //  or "Manage deployments" → edit → new version).
 //
@@ -12,7 +12,7 @@
 //  response body directly.
 // ═══════════════════════════════════════
 
-const SHEET_NAME = 'Inspection Records';
+const SHEET_NAME = 'route card import range';
 
 function doGet(e) {
   const action = (e.parameter.action || 'list');
