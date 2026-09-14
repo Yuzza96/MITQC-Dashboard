@@ -10,6 +10,16 @@ const DETAIL_GROUPS = [
   { title: 'Quantity', icon: Boxes, fields: ['QTY\nPO', 'QTY'] },
 ];
 
+// Deterministic per-WO# color so the same route card always gets the
+// same avatar color across refreshes/sessions.
+const AVATAR_COLORS = ['#007AFF', '#AF52DE', '#34C759', '#FF9500', '#FF2D55', '#5AC8FA', '#FF3B30'];
+function avatarColor(wo) {
+  const s = (wo || '').toString();
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
 export default function RouteCard({ showToast }) {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
@@ -227,7 +237,14 @@ export default function RouteCard({ showToast }) {
               )}
               {(pending || []).map((r, i) => (
                 <tr key={i}>
-                  <td className="wo-cell">{r['WO#'] || '—'}</td>
+                  <td className="wo-cell">
+                    {r['WO#'] ? (
+                      <span className="wo-avatar" style={{ background: avatarColor(r['WO#']) }}>
+                        {r['WO#'].toString().charAt(0).toUpperCase()}
+                      </span>
+                    ) : null}
+                    {r['WO#'] || '—'}
+                  </td>
                   <td>{r['REV'] ? <span className="rev-badge">{r['REV']}</span> : <span className="d-muted">—</span>}</td>
                   <td>{r['PART DESCRIPTION'] || '—'}</td>
                   <td>{r['DRAWING NUMBER'] || '—'}</td>

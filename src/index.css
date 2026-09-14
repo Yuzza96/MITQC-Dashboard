@@ -262,7 +262,13 @@ tbody tr:hover { background: rgba(0,122,255,0.04); }
 
 .pending-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
 .pending-table tbody tr:hover { background: rgba(0,122,255,0.06); }
-.pending-table .wo-cell { font-weight: 700; }
+.pending-table .wo-cell { font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.wo-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  color: #fff; font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+}
 .pending-table .d-muted { color: var(--text-muted); }
 .rev-badge {
   display: inline-block;
